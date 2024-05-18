@@ -1,0 +1,58 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.5'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'mymb'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '17'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+dependencies {
+	// Web
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	implementation 'org.json:json:20210307'
+
+	// MongoDB
+	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+
+	// Google
+	implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.16.3'
+
+	// Amazon Java
+	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+	implementation group: 'com.amazonaws.serverless', name: 'aws-serverless-java-container-springboot3', version: '2.0.0'
+	implementation group: 'org.apache.maven.plugins', name: 'maven-shade-plugin', version: '3.5.2'
+	implementation group: 'io.awspring.cloud', name: 'spring-cloud-aws-dependencies', version: '3.1.0', ext: 'pom'
+	implementation group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.12.674'
+	implementation(platform("software.amazon.awssdk:bom:2.21.1"))
+
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// Test
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
