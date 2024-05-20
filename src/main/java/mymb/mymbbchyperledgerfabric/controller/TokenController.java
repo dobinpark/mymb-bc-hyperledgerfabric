@@ -41,12 +41,13 @@ public class TokenController {
         return tokenService.getAllTokens();
     }
 
+    // 토큰 전송
     @PutMapping("/transferToken")
     public String transferToken(@RequestBody TransferRequest transferRequest) {
         return tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
     }
 
-    // 유저의 포인트 업데이트0
+    // 유저의 포인트 업데이트
     @PutMapping("/updateMymPoint")
     public String updateMymPoint(@RequestBody BCUserDTO request) {
         return tokenService.updateMymPoint(request);

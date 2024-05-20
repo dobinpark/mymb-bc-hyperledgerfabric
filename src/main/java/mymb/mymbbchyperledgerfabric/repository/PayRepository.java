@@ -9,5 +9,5 @@ import java.util.List;
 public interface PayRepository extends MongoRepository<Pay, String> {
 
     Pay findByMemberId(String memberId);
-    List<Pay> findByMemberIdAndStatus(String memberId, PayStatusEnum status1, PayStatusEnum status2);
+    List<Pay> findAllByMemberId(String memberId);
 }

@@ -188,6 +188,89 @@ public class TokenService {
         return "MongoDB Token Transfer Success";
     }
 
+    public String transferTokenExisting(String from, String to, ArrayList<String> tokenNumbers) {
+
+        // User 컬렉션에 닉네임을 이용하여 사용자 찾기
+        User fromUser = userRepository.findByNickName(from);
+        User toUser = userRepository.findByNickName(to);
+
+        if (fromUser == null && toUser != null) {
+            return "해당 from 유저는 User 컬렉션에 존재하지 않습니다.";
+        } else if (fromUser != null && toUser == null) {
+            return "해당 to 유저는 User 컬렉션에 존재하지 않습니다.";
+        } else if (fromUser == null && toUser == null) {
+            return "해당 from 유저와 to 유저는 User 컬렉션에 존재하지 않습니다.";
+        }
+
+        // BCUser 컬렉션에 닉네임을 이용하여 사용자 찾기
+        BCUser fromBCUser = BCUserRepository.findByNickName(from);
+        BCUser toBCUser = BCUserRepository.findByNickName(to);
+
+        if (fromBCUser == null && toBCUser != null) {
+            return "해당 from 유저는 BCUser 컬렉션에 존재하지 않습니다.";
+        } else if (fromBCUser != null && toBCUser == null) {
+            return "해당 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
+        } else if (fromBCUser == null && toBCUser == null) {
+            return "해당 from 유저와 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
+        }
+
+        // toUser의 모든 Pay 도큐먼트 찾기
+        List<Pay> toPayUsers = payRepository.findAllByMemberId(toUser.getId());
+
+        // fromBCUser와 fromUser의 값이 동일하고, toBCUser와 toUser의 값이 동일한지 확인
+        if (fromBCUser.getNickName().equals(fromUser.getNickName()) && toBCUser.getNickName().equals(toUser.getNickName())) {
+
+            // 조건에 해당되는 모든 도큐먼트들에 대해 반복
+            for (Pay toPayUser : toPayUsers) {
+
+                // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
+                PayStatusEnum status = toPayUser.getStatus();
+                int ticketAmount = toPayUser.getTicketAmount();
+
+                String sellStage = "";
+
+                if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 50000) {
+                    sellStage = "private";
+                } else if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 65000){
+                    sellStage = "public";
+                }
+
+                // 보내는 사용자(from)가 소유한 토큰들 가져오기
+                List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
+
+                // 받는 사용자(to)에게 토큰 전송
+                for (Token token : tokens) {
+                    fromBCUser.getOwnedToken().remove(token.getTokenNumber());
+                    toBCUser.getOwnedToken().add(token.getTokenNumber());
+
+                    // 토큰의 sellStage 값을 업데이트
+                    token.setSellStage(sellStage);
+                    tokenRepository.save(token);
+                }
+
+                // 변경사항 저장
+                BCUserRepository.save(fromBCUser);
+                BCUserRepository.save(toBCUser);
+
+                // sellStage 값 변경 체인코드
+                executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                "--tls --cafile %s " +
+                                "--channelID %s " +
+                                "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
+                        caFilePath, channelID, chaincodeName, tokens, sellStage));
+
+                // transfer 활성 체인코드
+                executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                "--tls --cafile %s " +
+                                "--channelID %s " +
+                                "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                        caFilePath, channelID, chaincodeName, fromBCUser, toBCUser, tokens));
+            }
+            return "토큰 전송이 완료되었습니다.";
+        }
+        return "MongoDB Token Transfer Success";
+    }
+
     public String updateMymPoint(BCUserDTO request) {
         String nickName = request.getNickName();
         int delta = request.getDelta();
