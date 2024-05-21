@@ -24,7 +24,7 @@ public class UserService {
     String channelID = "mychannel";
     String chaincodeName = "mycc";
 
-    // 최초로 회원가입할 때 이 메서드를 씀.
+    // 유저 정보 블록을 생성하는 메서드(회원가입시)
     public String createUserBlock(String nickName, int mymPoint, ArrayList<String> ownedToken) {
 
         // MongoDB에 NickName이 이미 존재하는지 확인
@@ -67,7 +67,7 @@ public class UserService {
         return "AMB " + ambResult + " MongoDB : Data saved successfully";
     }
 
-    // 기존에 회원가입된 회원이 쓰는 메서드.
+    // 유저 정보 블록을 생성하는 메서드(기존에 가입되어 있는 유저가 있을시)
     public String createUserBlockExisting(String nickName, int mymPoint, ArrayList<String> ownedToken) {
 
         // MongoDB에 NickName이 이미 존재하는지 확인
@@ -127,6 +127,7 @@ public class UserService {
         }
     }
 
+    // 해당 유저를 조회하는 메서드
     public String getUser(String nickName) {
 
         return executeCommand(String.format("docker exec cli peer chaincode query " +
@@ -135,6 +136,7 @@ public class UserService {
                 "--name %s -c '{\"Args\":[\"GetUser\", \"%s\"]}'", caFilePath, channelID, chaincodeName, nickName));
     }
 
+    // 모든 유저를 조회하는 메서드
     public String getAllUsers() {
 
         return executeCommand(String.format("docker exec cli peer chaincode query " +

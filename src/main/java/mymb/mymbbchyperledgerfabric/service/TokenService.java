@@ -31,6 +31,7 @@ public class TokenService {
     String channelID = "mychannel";
     String chaincodeName = "mycc";
 
+    // 단일 티켓을 발행하는 메서드
     public String mintToken(String categoryCode, String pollingResultId, String tokenType) {
 
         // sellStage 초기화
@@ -87,6 +88,83 @@ public class TokenService {
         return "AMB " + ambResult + " MongoDB : Data saved successfully";
     }
 
+    // 13,332장 티켓을 발행하는 메서드
+    public String mintTokens(String categoryCode, String pollingResultId, String tokenType) {
+
+        // sellStage 초기화
+        String sellStage = "";
+
+        // BCUser 컬렉션의 ownedToken 필드에 토큰 추가
+        BCUser BCUser = BCUserRepository.findByNickName("(주)밈비"); // 닉네임을 "(주)밈비"로 지정
+        if (BCUser == null) {
+            return "사용자를 찾을 수 없습니다.";
+        }
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < 13332; i++) {
+            // UUID 생성
+            UUID uuid = UUID.randomUUID();
+
+            // tokenNumber 생성
+            String tokenNumber = generateTokenNumber(uuid.toString());
+            System.out.println("tokenNumber : " + tokenNumber);
+
+            // MongoDB에 TokenNumber가 이미 존재하는지 확인
+            Token existingToken = tokenRepository.findByTokenNumber(tokenNumber);
+            if (existingToken != null) {
+                // 이미 존재하는 경우에는 아무 동작도 수행하지 않고 다음 토큰 생성
+                result.append("Token with tokenId ").append(tokenNumber).append(" already exists in MongoDB\n");
+                continue;
+            }
+
+            // AMB에 TokenNumber가 이미 존재하는지 확인
+            String ambResult = getToken(tokenNumber);
+            if (!ambResult.isEmpty()) {
+                // 이미 존재하는 경우에는 아무 동작도 수행하지 않고 다음 토큰 생성
+                result.append("Token with tokenId ").append(tokenNumber).append(" already exists in AMB\n");
+                continue;
+            }
+
+            // BCUser 컬렉션에 토큰 추가
+            BCUser.getOwnedToken().add(tokenNumber);
+
+            // MongoDB에 데이터 저장
+            Token token = Token.builder()
+                    .tokenNumber(tokenNumber)
+                    .categoryCode(categoryCode)
+                    .pollingResultId(pollingResultId)
+                    .tokenType(tokenType)
+                    .sellStage(sellStage)
+                    .tokenCreatedTime(LocalDateTime.now())
+                    .build();
+            tokenRepository.save(token);
+
+            // AMB에 데이터 저장 요청
+            ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, tokenNumber, categoryCode, pollingResultId, tokenType, sellStage));
+
+            result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
+
+            try {
+                // 1밀리초 대기
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+        }
+
+        // BCUser 저장 (한 번만 저장)
+        BCUserRepository.save(BCUser);
+
+        return result.toString();
+    }
+
+    // 해당 토큰을 조회하는 메서드
     public String getToken(String tokenNumber) {
 
         return executeCommand(String.format("docker exec cli peer chaincode query " +
@@ -95,6 +173,7 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetToken\", \"%s\"]}'", caFilePath, channelID, chaincodeName, tokenNumber));
     }
 
+    // 모든 토큰을 조회하는 메서드
     public String getAllTokens() {
 
         return executeCommand(String.format("docker exec cli peer chaincode query " +
@@ -103,6 +182,7 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetAllTokens\"]}'", caFilePath, channelID, chaincodeName));
     }
 
+    //
     public String transferToken(String from, String to, ArrayList<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
@@ -130,7 +210,6 @@ public class TokenService {
         }
 
         // Pay 컬렉션에서 memberId와 User 컬렉션의 Id값이 동일한지 확인
-        Pay fromPayUser = payRepository.findByMemberId(fromUser.getId());
         Pay toPayUser = payRepository.findByMemberId(toUser.getId());
 
         // fromBCUser와 fromUser의 값이 동일하고, toBCUser와 toUser의 값이 동일한지 확인
@@ -188,6 +267,7 @@ public class TokenService {
         return "MongoDB Token Transfer Success";
     }
 
+    // 기존의 Pay 컬렉션에 가지고 있는 도큐먼트들을 전송하는 메서드
     public String transferTokenExisting(String from, String to, ArrayList<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
@@ -235,42 +315,50 @@ public class TokenService {
                     sellStage = "public";
                 }
 
-                // 보내는 사용자(from)가 소유한 토큰들 가져오기
-                List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
+                // 조건에 맞는 경우에만 실행
+                if (!sellStage.isEmpty()) {
+                    int ticketCount = toPayUser.getTicketCount(); // 도큐먼트에서 ticketCount 가져오기
 
-                // 받는 사용자(to)에게 토큰 전송
-                for (Token token : tokens) {
-                    fromBCUser.getOwnedToken().remove(token.getTokenNumber());
-                    toBCUser.getOwnedToken().add(token.getTokenNumber());
+                    // 보내는 사용자(from)가 소유한 토큰들 가져오기
+                    List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
 
-                    // 토큰의 sellStage 값을 업데이트
-                    token.setSellStage(sellStage);
-                    tokenRepository.save(token);
+                    // ticketCount 수만큼 토큰 전송
+                    for (int i = 0; i < ticketCount; i++) {
+                        if (tokens.size() <= i) break; // 전송한 토큰이 부족할 경우 루프 종료
+                        Token token = tokens.get(i);
+                        fromBCUser.getOwnedToken().remove(token.getTokenNumber());
+                        toBCUser.getOwnedToken().add(token.getTokenNumber());
+
+                        // 토큰의 sellStage 값을 업데이트
+                        token.setSellStage(sellStage);
+                        tokenRepository.save(token);
+                    }
+
+                    // 변경사항 저장
+                    BCUserRepository.save(fromBCUser);
+                    BCUserRepository.save(toBCUser);
+
+                    // sellStage 값 변경 체인코드
+                    executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                    "--tls --cafile %s " +
+                                    "--channelID %s " +
+                                    "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
+                            caFilePath, channelID, chaincodeName, tokens, sellStage));
+
+                    // transfer 활성 체인코드
+                    executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                    "--tls --cafile %s " +
+                                    "--channelID %s " +
+                                    "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                            caFilePath, channelID, chaincodeName, fromBCUser, toBCUser, tokens));
                 }
-
-                // 변경사항 저장
-                BCUserRepository.save(fromBCUser);
-                BCUserRepository.save(toBCUser);
-
-                // sellStage 값 변경 체인코드
-                executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                                "--tls --cafile %s " +
-                                "--channelID %s " +
-                                "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
-                        caFilePath, channelID, chaincodeName, tokens, sellStage));
-
-                // transfer 활성 체인코드
-                executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                                "--tls --cafile %s " +
-                                "--channelID %s " +
-                                "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                        caFilePath, channelID, chaincodeName, fromBCUser, toBCUser, tokens));
             }
             return "토큰 전송이 완료되었습니다.";
         }
         return "MongoDB Token Transfer Success";
     }
 
+    // 커뮤니티 활동 포인트 적립하는 메서드
     public String updateMymPoint(BCUserDTO request) {
         String nickName = request.getNickName();
         int delta = request.getDelta();

@@ -19,7 +19,7 @@ public class TokenController {
     private final TokenRepository tokenRepository;
     private final BCUserRepository bcUserRepository;
 
-    // 컨텐츠 판매 티켓 Token 토큰 발행
+    // 컨텐츠 판매 티켓 Token 토큰 단일 발행
     @PostMapping("/mintToken")
     public String mintToken(@RequestBody TokenDTO tokenDTO) {
         String categoryCode = tokenDTO.getCategoryCode();
@@ -27,6 +27,16 @@ public class TokenController {
         String tokenType = tokenDTO.getTokenType();
 
         return tokenService.mintToken(categoryCode, pollingResultId, tokenType);
+    }
+
+    // 컨텐츠 판매 티켓 Token 토큰 13,332장 발행
+    @PostMapping("/mintTokens")
+    public String mintTokens(@RequestBody TokenDTO tokenDTO) {
+        String categoryCode = tokenDTO.getCategoryCode();
+        String pollingResultId = tokenDTO.getPollingResultId();
+        String tokenType = tokenDTO.getTokenType();
+
+        return tokenService.mintTokens(categoryCode, pollingResultId, tokenType);
     }
 
     // 토큰 ID 조회
@@ -39,6 +49,12 @@ public class TokenController {
     @GetMapping("/tokens")
     public String getAllTokens() {
         return tokenService.getAllTokens();
+    }
+
+    // 토큰 전송
+    @PutMapping("/transferTokenExisting")
+    public String transferTokenExisting(@RequestBody TransferRequest transferRequest) {
+        return tokenService.transferTokenExisting(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
     }
 
     // 토큰 전송
