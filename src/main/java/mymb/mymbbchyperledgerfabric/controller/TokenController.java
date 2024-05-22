@@ -29,7 +29,7 @@ public class TokenController {
         return tokenService.mintToken(categoryCode, pollingResultId, tokenType);
     }
 
-    // 컨텐츠 판매 티켓 Token 토큰 13,332장 발행
+    // 컨텐츠 판매 티켓 Token 토큰 13,332장(임시로 30장) 발행
     @PostMapping("/mintTokens")
     public String mintTokens(@RequestBody TokenDTO tokenDTO) {
         String categoryCode = tokenDTO.getCategoryCode();

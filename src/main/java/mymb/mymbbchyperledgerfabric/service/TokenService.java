@@ -88,7 +88,7 @@ public class TokenService {
         return "AMB " + ambResult + " MongoDB : Data saved successfully";
     }
 
-    // 13,332장 티켓을 발행하는 메서드
+    // 13,332장(임시로 30장) 티켓을 발행하는 메서드
     public String mintTokens(String categoryCode, String pollingResultId, String tokenType) {
 
         // sellStage 초기화
@@ -102,7 +102,7 @@ public class TokenService {
 
         StringBuilder result = new StringBuilder();
 
-        for (int i = 0; i < 13332; i++) {
+        for (int i = 0; i < 30; i++) {
             // UUID 생성
             UUID uuid = UUID.randomUUID();
 
@@ -382,6 +382,9 @@ public class TokenService {
             return "BCUser with nickname " + nickName + " not found in MongoDB";
         }
     }
+
+    // 토큰 제거 메서드
+
 
     private String executeCommand(String command) {
 
