@@ -182,7 +182,7 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetAllTokens\"]}'", caFilePath, channelID, chaincodeName));
     }
 
-    //
+    // 지정된 토큰들을 전송하는 메서드
     public String transferToken(String from, String to, ArrayList<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
@@ -267,7 +267,7 @@ public class TokenService {
         return "MongoDB Token Transfer Success";
     }
 
-    // 기존의 Pay 컬렉션에 가지고 있는 도큐먼트들을 전송하는 메서드
+    // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송하는 메서드
     public String transferTokenExisting(String from, String to, ArrayList<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
@@ -383,8 +383,41 @@ public class TokenService {
         }
     }
 
-    // 토큰 제거 메서드
+    // 해당 유저가 가지고 있는 지정된 토큰들을 삭제하는 메서드
+    public String deleteAllTokens(String nickName) {
 
+        // MongoDB에서 사용자 찾기
+        BCUser BCUser = BCUserRepository.findByNickName(nickName);
+        if (BCUser != null) {
+            // 소유한 토큰 리스트 가져오기
+            List<String> ownedTokens = new ArrayList<>(BCUser.getOwnedToken());
+
+            // 토큰 리스트 비우기
+            BCUser.getOwnedToken().clear();
+            BCUserRepository.save(BCUser);
+
+            StringBuilder result = new StringBuilder();
+            // 각 토큰 삭제
+            for (String tokenNumber : ownedTokens) {
+                // MongoDB에서 토큰 삭제
+                Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                if (token != null) {
+                    tokenRepository.delete(token);
+                }
+            }
+
+            // Hyperledger Fabric에서 사용자의 모든 토큰 삭제
+            String ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                    "--tls --cafile %s " +
+                    "--channelID %s " +
+                    "--name %s -c '{\"Args\":[\"DeleteTokensByNickName\", \"%s\"]}'", caFilePath, channelID, chaincodeName, nickName));
+            result.append("Tokens deleted from AMB for user ").append(nickName).append(" with result: ").append(ambResult).append("\n");
+
+            return result.toString();
+        } else {
+            return "BCUser with nickname " + nickName + " not found in MongoDB";
+        }
+    }
 
     private String executeCommand(String command) {
 

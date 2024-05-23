@@ -8,6 +8,8 @@ import mymb.mymbbchyperledgerfabric.repository.BCUserRepository;
 import mymb.mymbbchyperledgerfabric.repository.TokenRepository;
 import mymb.mymbbchyperledgerfabric.repository.UserRepository;
 import mymb.mymbbchyperledgerfabric.service.TokenService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -67,5 +69,16 @@ public class TokenController {
     @PutMapping("/updateMymPoint")
     public String updateMymPoint(@RequestBody BCUserDTO request) {
         return tokenService.updateMymPoint(request);
+    }
+
+    // 해당 유저가 가지고 있는 지정된 토큰들을 삭제
+    @DeleteMapping("/deleteAllTokens/{nickName}")
+    public ResponseEntity<String> deleteAllTokens(@PathVariable String nickName) {
+        String result = tokenService.deleteAllTokens(nickName);
+        if (result.contains("not found")) {
+            return new ResponseEntity<>(result, HttpStatus.NOT_FOUND);
+        } else {
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
     }
 }
