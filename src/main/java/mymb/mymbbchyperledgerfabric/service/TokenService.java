@@ -410,7 +410,7 @@ public class TokenService {
             String ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                     "--tls --cafile %s " +
                     "--channelID %s " +
-                    "--name %s -c '{\"Args\":[\"DeleteTokensByNickName\", \"%s\"]}'", caFilePath, channelID, chaincodeName, nickName));
+                    "--name %s -c '{\"Args\":[\"DeleteAllTokens\", \"%s\"]}'", caFilePath, channelID, chaincodeName, nickName));
             result.append("Tokens deleted from AMB for user ").append(nickName).append(" with result: ").append(ambResult).append("\n");
 
             return result.toString();
