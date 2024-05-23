@@ -3,10 +3,7 @@ package mymb.mymbbchyperledgerfabric.service;
 import lombok.RequiredArgsConstructor;
 import mymb.mymbbchyperledgerfabric.dto.BCUserDTO;
 import mymb.mymbbchyperledgerfabric.entity.*;
-import mymb.mymbbchyperledgerfabric.repository.BCUserRepository;
-import mymb.mymbbchyperledgerfabric.repository.PayRepository;
-import mymb.mymbbchyperledgerfabric.repository.TokenRepository;
-import mymb.mymbbchyperledgerfabric.repository.UserRepository;
+import mymb.mymbbchyperledgerfabric.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -25,7 +22,8 @@ public class TokenService {
     private final BCUserRepository BCUserRepository;
     private final PayRepository payRepository;
     private final UserRepository userRepository;
-    private final UserService userService;
+    private final FundingRepository fundingRepository;
+    private final PollingResultRepository pollingResultRepository;
 
     String caFilePath = "/opt/home/managedblockchain-tls-chain.pem";
     String channelID = "mychannel";
@@ -268,7 +266,9 @@ public class TokenService {
     }
 
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송하는 메서드
-    public String transferTokenExisting(String from, String to, ArrayList<String> tokenNumbers) {
+    public String transferTokenExisting(String from, String to) {
+
+        Pay fromPay = payRepository.fin
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
         User fromUser = userRepository.findByNickName(from);
@@ -319,19 +319,22 @@ public class TokenService {
                 if (!sellStage.isEmpty()) {
                     int ticketCount = toPayUser.getTicketCount(); // 도큐먼트에서 ticketCount 가져오기
 
-                    // 보내는 사용자(from)가 소유한 토큰들 가져오기
-                    List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
+                    // fromBCUser가 소유한 모든 토큰 가져오기
+                    List<String> fromOwnedTokens = new ArrayList<>(fromBCUser.getOwnedToken());
 
                     // ticketCount 수만큼 토큰 전송
                     for (int i = 0; i < ticketCount; i++) {
-                        if (tokens.size() <= i) break; // 전송한 토큰이 부족할 경우 루프 종료
-                        Token token = tokens.get(i);
-                        fromBCUser.getOwnedToken().remove(token.getTokenNumber());
-                        toBCUser.getOwnedToken().add(token.getTokenNumber());
+                        if (fromOwnedTokens.size() <= i) break; // 전송할 토큰이 부족할 경우 루프 종료
+                        String tokenNumber = fromOwnedTokens.get(i);
+                        Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                        fromBCUser.getOwnedToken().remove(tokenNumber);
+                        toBCUser.getOwnedToken().add(tokenNumber);
 
                         // 토큰의 sellStage 값을 업데이트
-                        token.setSellStage(sellStage);
-                        tokenRepository.save(token);
+                        if (token != null) {
+                            token.setSellStage(sellStage);
+                            tokenRepository.save(token);
+                        }
                     }
 
                     // 변경사항 저장
@@ -343,14 +346,14 @@ public class TokenService {
                                     "--tls --cafile %s " +
                                     "--channelID %s " +
                                     "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
-                            caFilePath, channelID, chaincodeName, tokens, sellStage));
+                            caFilePath, channelID, chaincodeName, fromOwnedTokens, sellStage));
 
                     // transfer 활성 체인코드
                     executeCommand(String.format("docker exec cli peer chaincode invoke " +
                                     "--tls --cafile %s " +
                                     "--channelID %s " +
                                     "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                            caFilePath, channelID, chaincodeName, fromBCUser, toBCUser, tokens));
+                            caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), fromOwnedTokens));
                 }
             }
             return "토큰 전송이 완료되었습니다.";
