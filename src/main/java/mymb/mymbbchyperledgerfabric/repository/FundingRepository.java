@@ -9,5 +9,4 @@ import java.util.List;
 @Repository
 public interface FundingRepository extends MongoRepository<Funding, String> {
 
-    List<Funding> findAllById(String id);
 }
