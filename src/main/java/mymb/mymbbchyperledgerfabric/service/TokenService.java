@@ -268,8 +268,6 @@ public class TokenService {
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송하는 메서드
     public String transferTokenExisting(String from, String to) {
 
-        Pay fromPay = payRepository.fin
-
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
         User fromUser = userRepository.findByNickName(from);
         User toUser = userRepository.findByNickName(to);
@@ -302,6 +300,23 @@ public class TokenService {
 
             // 조건에 해당되는 모든 도큐먼트들에 대해 반복
             for (Pay toPayUser : toPayUsers) {
+
+                // 첫 번째 조건(MZ스님 박건우)
+                String fundingId1 = "646f64f3b4c1f55a6bc43aa4";
+                String pollingResultId1 = "64a4cccb448261263d7fb860";
+                boolean match1 = pollingResultId1 == fundingId1;
+
+                // 두 번째 조건(신도 직업입니다)
+                String fundingId2 = "646f648db4c1f55a6bc43aa3";
+                String pollingResultId2 = "6499554e9c5a271ed39476b2";
+                boolean match2 = pollingResultId2 == fundingId2;
+
+                // 세 번째 조건(당신, 보고 있구나)
+                String fundingId3 = "646f653eb4c1f55a6bc43aa5";
+                String pollingResultId3 = "64a4cceb448261263d7fb861";
+                boolean match3 = pollingResultId3 == fundingId3;
+
+
 
                 // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
                 PayStatusEnum status = toPayUser.getStatus();
