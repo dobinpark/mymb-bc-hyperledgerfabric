@@ -267,7 +267,6 @@ public class TokenService {
 
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송하는 메서드
     public String transferTokenExisting(String from, String to) {
-
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
         User fromUser = userRepository.findByNickName(from);
         User toUser = userRepository.findByNickName(to);
@@ -298,77 +297,99 @@ public class TokenService {
         // fromBCUser와 fromUser의 값이 동일하고, toBCUser와 toUser의 값이 동일한지 확인
         if (fromBCUser.getNickName().equals(fromUser.getNickName()) && toBCUser.getNickName().equals(toUser.getNickName())) {
 
+            // fromBCUser가 소유한 모든 토큰 가져오기
+            List<String> fromOwnedTokens = new ArrayList<>(fromBCUser.getOwnedToken());
+
             // 조건에 해당되는 모든 도큐먼트들에 대해 반복
             for (Pay toPayUser : toPayUsers) {
+
+                String fundingId = toPayUser.getFundingId();
 
                 // 첫 번째 조건(MZ스님 박건우)
                 String fundingId1 = "646f64f3b4c1f55a6bc43aa4";
                 String pollingResultId1 = "64a4cccb448261263d7fb860";
-                boolean match1 = pollingResultId1 == fundingId1;
+                boolean match1 = fundingId.equals(fundingId1) && fromOwnedTokens.stream().anyMatch(tokenNumber -> {
+                    Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                    return token != null && token.getPollingResultId().equals(pollingResultId1);
+                });
 
                 // 두 번째 조건(신도 직업입니다)
                 String fundingId2 = "646f648db4c1f55a6bc43aa3";
                 String pollingResultId2 = "6499554e9c5a271ed39476b2";
-                boolean match2 = pollingResultId2 == fundingId2;
+                boolean match2 = fundingId.equals(fundingId2) && fromOwnedTokens.stream().anyMatch(tokenNumber -> {
+                    Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                    return token != null && token.getPollingResultId().equals(pollingResultId2);
+                });
 
                 // 세 번째 조건(당신, 보고 있구나)
                 String fundingId3 = "646f653eb4c1f55a6bc43aa5";
                 String pollingResultId3 = "64a4cceb448261263d7fb861";
-                boolean match3 = pollingResultId3 == fundingId3;
+                boolean match3 = fundingId.equals(fundingId3) && fromOwnedTokens.stream().anyMatch(tokenNumber -> {
+                    Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                    return token != null && token.getPollingResultId().equals(pollingResultId3);
+                });
 
+                // 조건을 만족하는 경우에만 전송
+                if (match1 || match2 || match3) {
+                    // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
+                    PayStatusEnum status = toPayUser.getStatus();
+                    int ticketAmount = toPayUser.getTicketAmount();
 
+                    String sellStage = "";
 
-                // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
-                PayStatusEnum status = toPayUser.getStatus();
-                int ticketAmount = toPayUser.getTicketAmount();
-
-                String sellStage = "";
-
-                if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 50000) {
-                    sellStage = "private";
-                } else if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 65000){
-                    sellStage = "public";
-                }
-
-                // 조건에 맞는 경우에만 실행
-                if (!sellStage.isEmpty()) {
-                    int ticketCount = toPayUser.getTicketCount(); // 도큐먼트에서 ticketCount 가져오기
-
-                    // fromBCUser가 소유한 모든 토큰 가져오기
-                    List<String> fromOwnedTokens = new ArrayList<>(fromBCUser.getOwnedToken());
-
-                    // ticketCount 수만큼 토큰 전송
-                    for (int i = 0; i < ticketCount; i++) {
-                        if (fromOwnedTokens.size() <= i) break; // 전송할 토큰이 부족할 경우 루프 종료
-                        String tokenNumber = fromOwnedTokens.get(i);
-                        Token token = tokenRepository.findByTokenNumber(tokenNumber);
-                        fromBCUser.getOwnedToken().remove(tokenNumber);
-                        toBCUser.getOwnedToken().add(tokenNumber);
-
-                        // 토큰의 sellStage 값을 업데이트
-                        if (token != null) {
-                            token.setSellStage(sellStage);
-                            tokenRepository.save(token);
-                        }
+                    if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 50000) {
+                        sellStage = "private";
+                    } else if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 65000) {
+                        sellStage = "public";
                     }
 
-                    // 변경사항 저장
-                    BCUserRepository.save(fromBCUser);
-                    BCUserRepository.save(toBCUser);
+                    // 조건에 맞는 경우에만 실행
+                    if (!sellStage.isEmpty()) {
+                        int ticketCount = toPayUser.getTicketCount(); // 도큐먼트에서 ticketCount 가져오기
 
-                    // sellStage 값 변경 체인코드
-                    executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                                    "--tls --cafile %s " +
-                                    "--channelID %s " +
-                                    "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
-                            caFilePath, channelID, chaincodeName, fromOwnedTokens, sellStage));
+                        // Pay 컬렉션의 fundingId에 맞는 Token 필터링
+                        List<String> tokensToTransfer = new ArrayList<>();
+                        for (String tokenNumber : fromOwnedTokens) {
+                            Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                            if (token != null && (token.getPollingResultId().equals(pollingResultId1) ||
+                                    token.getPollingResultId().equals(pollingResultId2) ||
+                                    token.getPollingResultId().equals(pollingResultId3))) {
+                                tokensToTransfer.add(tokenNumber);
+                                if (tokensToTransfer.size() == ticketCount) break; // 필요한 만큼만 수집
+                            }
+                        }
 
-                    // transfer 활성 체인코드
-                    executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                                    "--tls --cafile %s " +
-                                    "--channelID %s " +
-                                    "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                            caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), fromOwnedTokens));
+                        // ticketCount 수만큼 토큰 전송
+                        for (String tokenNumber : tokensToTransfer) {
+                            fromBCUser.getOwnedToken().remove(tokenNumber);
+                            toBCUser.getOwnedToken().add(tokenNumber);
+
+                            // 토큰의 sellStage 값을 업데이트
+                            Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                            if (token != null) {
+                                token.setSellStage(sellStage);
+                                tokenRepository.save(token);
+                            }
+                        }
+
+                        // 변경사항 저장
+                        BCUserRepository.save(fromBCUser);
+                        BCUserRepository.save(toBCUser);
+
+                        // sellStage 값 변경 체인코드
+                        executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                        "--tls --cafile %s " +
+                                        "--channelID %s " +
+                                        "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
+                                caFilePath, channelID, chaincodeName, tokensToTransfer, sellStage));
+
+                        // transfer 활성 체인코드
+                        executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                        "--tls --cafile %s " +
+                                        "--channelID %s " +
+                                        "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                                caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokensToTransfer));
+                    }
                 }
             }
             return "토큰 전송이 완료되었습니다.";
