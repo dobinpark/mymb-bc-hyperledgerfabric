@@ -63,7 +63,7 @@ public class TokenController {
     // 토큰 전송(테스트용)
     @PutMapping("/transferTokenOne")
     public String transferTokenOne(@RequestBody TransferRequestOne transferRequestOne) {
-        return tokenService.transferTokenOne(transferRequestOne.getFrom(), transferRequestOne.getTo(), transferRequestOne.getTokenNumber());
+        return tokenService.transferTokens(transferRequestOne.getFrom(), transferRequestOne.getTo(), transferRequestOne.getTokenNumber());
     }
 
     // 토큰 전송
