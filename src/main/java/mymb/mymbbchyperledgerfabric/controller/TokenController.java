@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import mymb.mymbbchyperledgerfabric.dto.BCUserDTO;
 import mymb.mymbbchyperledgerfabric.dto.TokenDTO;
 import mymb.mymbbchyperledgerfabric.entity.TransferRequest;
+import mymb.mymbbchyperledgerfabric.entity.TransferRequestOne;
 import mymb.mymbbchyperledgerfabric.repository.BCUserRepository;
 import mymb.mymbbchyperledgerfabric.repository.TokenRepository;
 import mymb.mymbbchyperledgerfabric.repository.UserRepository;
@@ -61,8 +62,8 @@ public class TokenController {
 
     // 토큰 전송(테스트용)
     @PutMapping("/transferTokenOne")
-    public String transferTokenOne(@RequestParam String from, @RequestParam String to, @RequestParam String tokenNumber) {
-        return tokenService.transferTokenOne(from, to, tokenNumber);
+    public String transferTokenOne(@RequestBody TransferRequestOne transferRequestOne) {
+        return tokenService.transferTokenOne(transferRequestOne.getFrom(), transferRequestOne.getTo(), transferRequestOne.getTokenNumber());
     }
 
     // 토큰 전송
