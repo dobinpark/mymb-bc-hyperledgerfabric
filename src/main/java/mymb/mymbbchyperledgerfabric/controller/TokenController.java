@@ -59,6 +59,12 @@ public class TokenController {
         return tokenService.transferTokenExisting(transferRequest.getFrom(), transferRequest.getTo());
     }
 
+    // 토큰 전송(테스트용)
+    @PutMapping("/transferTokenOne")
+    public String transferTokenOne(@RequestParam String from, @RequestParam String to, @RequestParam String tokenNumber) {
+        return tokenService.transferTokenOne(from, to, tokenNumber);
+    }
+
     // 토큰 전송
     @PutMapping("/transferToken")
     public String transferToken(@RequestBody TransferRequest transferRequest) {
