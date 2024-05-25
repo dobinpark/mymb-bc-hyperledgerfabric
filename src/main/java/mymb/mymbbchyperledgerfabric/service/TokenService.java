@@ -230,7 +230,7 @@ public class TokenService {
         executeCommand(String.format("docker exec cli peer chaincode invoke " +
                         "--tls --cafile %s " +
                         "--channelID %s " +
-                        "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                        "--name %s -c '{\"Args\":[\"TransferSingleToken\", \"%s\", \"%s\", \"%s\"]}'",
                 caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
 
         return "토큰 전송이 완료되었습니다.";
