@@ -234,7 +234,7 @@ public class TokenService {
             executeCommand(String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"TransferTokens\", \"%s\", \"%s\", \"%s\"]}'",
+                            "--name %s -c '{\"Args\":[\"TransferTokens\", \"%s\", \"%s\", [\"%s\"]]}'",
                     caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
         }
 
