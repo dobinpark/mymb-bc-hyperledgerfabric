@@ -180,7 +180,7 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetAllTokens\"]}'", caFilePath, channelID, chaincodeName));
     }
 
-    // 지정된 토큰들을 전송하는 메서드
+    // n개의 토큰들을 전송하는 메서드
     public String transferTokens(String from, String to, ArrayList<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
