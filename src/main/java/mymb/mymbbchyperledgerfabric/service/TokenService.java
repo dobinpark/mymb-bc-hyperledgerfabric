@@ -181,7 +181,7 @@ public class TokenService {
     }
 
     // 지정된 토큰들을 전송하는 메서드
-    public String transferTokens(String from, String to, List<String> tokenNumbers) {
+    public String transferTokens(String from, String to, ArrayList<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
         User fromUser = userRepository.findByNickName(from);
