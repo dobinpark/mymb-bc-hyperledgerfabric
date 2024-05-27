@@ -1,6 +1,5 @@
 package mymb.mymbbchyperledgerfabric.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,28 +9,38 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document("bcUser")
-public class BCUser {
+@Document("ticket")
+public class Ticket {
 
     @Id
-    private String userId;
+    private String ticketId;
 
     @Field
-    private String nickName;
+    private String ticketAmount;
 
     @Field
-    private int mymPoint;
+    private int ticketMaxCnt;
 
     @Field
-    private List<String> ownedToken;
+    private LocalDateTime startAt;
 
     @Field
-    @JsonFormat(pattern = "yyyy.MM.dd/HH:mm/E")
-    private LocalDateTime blockCreatedTime;
+    private LocalDateTime endAt;
+
+    @Field
+    private int useCnt;
+
+    @Field
+    private String type;
+
+    @Field
+    private String ticketName;
+
+    @Field
+    private String fundingId;
 }

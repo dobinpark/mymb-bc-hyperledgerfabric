@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,7 +20,7 @@ public class BCUserDTO {
 
     private int mymPoint;
 
-    private ArrayList<String> ownedToken;
+    private List<String> ownedToken;
 
     private LocalDateTime blockCreatedTime;
 

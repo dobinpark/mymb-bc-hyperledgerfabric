@@ -54,15 +54,15 @@ public class TokenController {
     }
 
     // 토큰 전송
-    @PutMapping("/transferTokenExisting")
-    public String transferTokenExisting(@RequestBody TransferRequest transferRequest) {
-        return tokenService.transferTokenExisting(transferRequest.getFrom(), transferRequest.getTo());
-    }
-
-    // 토큰 전송
     @PutMapping("/transferToken")
     public String transferToken(@RequestBody TransferRequest transferRequest) {
         return tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
+    }
+
+    // 토큰 전체 전송
+    @PutMapping("/transferTokenExisting")
+    public String transferTokenExisting(@RequestBody TransferRequest transferRequest) {
+        return tokenService.transferTokenExisting(transferRequest.getFrom(), transferRequest.getTo());
     }
 
     // 유저의 포인트 업데이트

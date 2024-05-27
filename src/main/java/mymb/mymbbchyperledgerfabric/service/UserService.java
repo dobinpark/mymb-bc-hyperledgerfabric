@@ -11,7 +11,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class UserService {
     String chaincodeName = "mycc";
 
     // 유저 정보 블록을 생성하는 메서드(회원가입시)
-    public String createUserBlock(String nickName, int mymPoint, ArrayList<String> ownedToken) {
+    public String createUserBlock(String nickName, int mymPoint, List<String> ownedToken) {
 
         // MongoDB에 NickName이 이미 존재하는지 확인
         User existingUser = userRepository.findByNickName(nickName);
@@ -68,7 +68,7 @@ public class UserService {
     }
 
     // 유저 정보 블록을 생성하는 메서드(기존에 가입되어 있는 유저가 있을시)
-    public String createUserBlockExisting(String nickName, int mymPoint, ArrayList<String> ownedToken) {
+    public String createUserBlockExisting(String nickName, int mymPoint, List<String> ownedToken) {
 
         // MongoDB에 NickName이 이미 존재하는지 확인
         BCUser existingBCUser = BCUserRepository.findByNickName(nickName);
@@ -145,6 +145,7 @@ public class UserService {
                 "--name %s -c '{\"Args\":[\"GetAllUsers\"]}'", caFilePath, channelID, chaincodeName));
     }
 
+    // 리눅스 터미널 사용 메서드
     private String executeCommand(String command) {
 
         StringBuilder output = new StringBuilder();

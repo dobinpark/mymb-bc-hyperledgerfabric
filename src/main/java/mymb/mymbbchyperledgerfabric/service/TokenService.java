@@ -181,7 +181,7 @@ public class TokenService {
     }
 
     // 지정된 토큰들을 전송하는 메서드
-    public String transferToken(String from, String to, ArrayList<String> tokenNumbers) {
+    public String transferToken(String from, String to, List<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
         User fromUser = userRepository.findByNickName(from);
@@ -210,59 +210,77 @@ public class TokenService {
         // Pay 컬렉션에서 memberId와 User 컬렉션의 Id값이 동일한지 확인
         Pay toPayUser = payRepository.findByMemberId(toUser.getId());
 
-        // fromBCUser와 fromUser의 값이 동일하고, toBCUser와 toUser의 값이 동일한지 확인
-        if (fromBCUser.getNickName().equals(fromUser.getNickName()) && toBCUser.getNickName().equals(toUser.getNickName())) {
+        // Pay 정보가 올바르지 않은 경우 처리
+        if (toPayUser == null) {
+            return "해당 사용자의 결제 정보가 없습니다.";
+        }
 
-            // Pay 컬렉션의 memberId값과 User 컬렉션의 Id값이 동일한지 확인
-            if (toPayUser.getMemberId().equals(toUser.getId())) {
+        // 전송할 토큰 리스트 가져오기
+        List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
 
-                // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
-                PayStatusEnum status = toPayUser.getStatus();
-                int ticketAmount = toPayUser.getTicketAmount();
+        // 전체 토큰 수와 티켓 수 확인
+        int totalTokens = tokens.size(); // 도큐먼트들
+        int ticketAmount = toPayUser.getTicketAmount(); // 도큐먼트 안에 있는 티켓 수(ticketAmount)
+        if (totalTokens < ticketAmount) {
+            return "전송할 토큰의 수가 티켓 수보다 적습니다.";
+        }
 
-                String sellStage = "";
+        // 초기화된 tokenIndex 변수
+        int tokenIndex = 0;
 
-                if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 50000) {
-                    sellStage = "private";
-                } else if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 65000){
-                    sellStage = "public";
-                }
+        // 전체 토큰 수만큼 반복하여 토큰 전송 및 처리
+        for (int i = 0; i < totalTokens; i++) {
+            // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
+            PayStatusEnum status = toPayUser.getStatus();
+            ticketAmount = toPayUser.getTicketAmount(); // 티켓 수가 변할 수 있으므로 반복마다 다시 가져옴
+            String sellStage = "";
+            if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 50000) {
+                sellStage = "private";
+            } else if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 65000) {
+                sellStage = "public";
+            }
 
-                // 보내는 사용자(from)가 소유한 토큰들 가져오기
-                List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
+            // 토큰 선택
+            Token token = tokens.get(tokenIndex);
 
-                // 받는 사용자(to)에게 토큰 전송
-                for (Token token : tokens) {
-                    fromBCUser.getOwnedToken().remove(token.getTokenNumber());
-                    toBCUser.getOwnedToken().add(token.getTokenNumber());
+            // fromBCUser의 토큰 제거
+            fromBCUser.getOwnedToken().remove(token.getTokenNumber());
 
-                    // 토큰의 sellStage 값을 업데이트
-                    token.setSellStage(sellStage);
-                    tokenRepository.save(token);
-                }
+            // toBCUser에게 토큰 추가
+            toBCUser.getOwnedToken().add(token.getTokenNumber());
 
-                // 변경사항 저장
-                BCUserRepository.save(fromBCUser);
-                BCUserRepository.save(toBCUser);
+            // 토큰의 sellStage 값 업데이트
+            token.setSellStage(sellStage);
+            tokenRepository.save(token);
 
-                // sellStage 값 변경 체인코드
-                executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                                "--tls --cafile %s " +
-                                "--channelID %s " +
-                                "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
-                        caFilePath, channelID, chaincodeName, tokens, sellStage));
+            // sellStage 값 변경 체인코드
+            executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, token.getTokenNumber(), sellStage));
 
-                // transfer 활성 체인코드
-                executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                                "--tls --cafile %s " +
-                                "--channelID %s " +
-                                "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                        caFilePath, channelID, chaincodeName, fromBCUser, toBCUser, tokens));
+            // transfer 활성 체인코드
+            executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), token.getTokenNumber()));
 
-                return "토큰 전송이 완료되었습니다.";
+            // 토큰 인덱스 증가
+            tokenIndex++;
+
+            // 티켓 수 만큼 토큰을 전송했으면 종료
+            if (tokenIndex >= ticketAmount) {
+                break;
             }
         }
-        return "MongoDB Token Transfer Success";
+
+        // 변경사항 저장
+        BCUserRepository.save(fromBCUser);
+        BCUserRepository.save(toBCUser);
+
+        return "토큰 전송이 완료되었습니다.";
     }
 
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송하는 메서드
@@ -458,6 +476,7 @@ public class TokenService {
         }
     }
 
+    // 리눅스 터미널 사용 메서드
     private String executeCommand(String command) {
 
         StringBuilder output = new StringBuilder();
@@ -488,6 +507,7 @@ public class TokenService {
         return output.toString();
     }
 
+    // 토큰 생성시 SHA-256 이용 메서드
     private static String generateTokenNumber(String input) {
         try {
             // SHA-256 해시 함수 사용

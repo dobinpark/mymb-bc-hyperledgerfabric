@@ -5,7 +5,7 @@ import mymb.mymbbchyperledgerfabric.dto.BCUserDTO;
 import mymb.mymbbchyperledgerfabric.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,7 +18,7 @@ public class UserController {
     public String createUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
-        ArrayList<String> ownedToken = BCUserDTO.getOwnedToken();
+        List<String> ownedToken = BCUserDTO.getOwnedToken();
 
         return userService.createUserBlock(nickName, mymPoint, ownedToken);
     }
@@ -28,7 +28,7 @@ public class UserController {
     public String createUserBlockExisting(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
-        ArrayList<String> ownedToken = BCUserDTO.getOwnedToken();
+        List<String> ownedToken = BCUserDTO.getOwnedToken();
 
         return userService.createUserBlockExisting(nickName, mymPoint, ownedToken);
     }
