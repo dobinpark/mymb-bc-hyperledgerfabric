@@ -180,6 +180,67 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetAllTokens\"]}'", caFilePath, channelID, chaincodeName));
     }
 
+    // n개의 토큰들을 전송하는 메서드
+    public String transferTokens(String from, String to, ArrayList<String> tokenNumbers) {
+
+        // User 컬렉션에 닉네임을 이용하여 사용자 찾기
+        User fromUser = userRepository.findByNickName(from);
+        User toUser = userRepository.findByNickName(to);
+
+        if (fromUser == null && toUser != null) {
+            return "해당 from 유저는 User 컬렉션에 존재하지 않습니다.";
+        } else if (fromUser != null && toUser == null) {
+            return "해당 to 유저는 User 컬렉션에 존재하지 않습니다.";
+        } else if (fromUser == null && toUser == null) {
+            return "해당 from 유저와 to 유저는 User 컬렉션에 존재하지 않습니다.";
+        }
+
+        // BCUser 컬렉션에 닉네임을 이용하여 사용자 찾기
+        BCUser fromBCUser = BCUserRepository.findByNickName(from);
+        BCUser toBCUser = BCUserRepository.findByNickName(to);
+
+        if (fromBCUser == null && toBCUser != null) {
+            return "해당 from 유저는 BCUser 컬렉션에 존재하지 않습니다.";
+        } else if (fromBCUser != null && toBCUser == null) {
+            return "해당 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
+        } else if (fromBCUser == null && toBCUser == null) {
+            return "해당 from 유저와 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
+        }
+
+        // 보내는 사용자(from)가 소유한 토큰들을 가져오기
+        List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
+
+        // 보내는 사용자가 소유한 모든 토큰들을 확인하고 전송
+        for (Token token : tokens) {
+            // 토큰이 fromBCUser에게 있는지 확인
+            if (!fromBCUser.getOwnedToken().contains(token.getTokenNumber())) {
+                return "해당 토큰을 소유한 사용자가 아닙니다.";
+            }
+        }
+
+        // 받는 사용자(to)에게 토큰 전송
+        for (String tokenNumber : tokenNumbers) {
+            // 토큰의 소유자 변경
+            fromBCUser.getOwnedToken().remove(tokenNumber);
+            toBCUser.getOwnedToken().add(tokenNumber);
+        }
+
+        // BCUser 컬렉션 변경사항 저장
+        BCUserRepository.save(fromBCUser);
+        BCUserRepository.save(toBCUser);
+
+        // Transfer 활성 체인코드 실행
+        for (String tokenNumber : tokenNumbers) {
+            executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s -c '{\"Args\":[\"TransferTokens\", \"%s\", \"%s\", [\"%s\"]]}'",
+                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
+        }
+
+        return "토큰 전송이 완료되었습니다.";
+    }
+
     // 지정된 토큰들을 전송하는 메서드
     public String transferToken(String from, String to, List<String> tokenNumbers) {
 
