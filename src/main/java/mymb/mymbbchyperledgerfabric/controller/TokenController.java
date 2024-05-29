@@ -21,7 +21,7 @@ public class TokenController {
         String categoryCode = tokenDTO.getCategoryCode();
         String pollingResultId = tokenDTO.getPollingResultId();
         String tokenType = tokenDTO.getTokenType();
-        int ticketCnt = 0;
+        int ticketCnt = tokenDTO.getTicketCnt();
 
         return tokenService.mintToken(categoryCode, pollingResultId, tokenType, ticketCnt);
     }

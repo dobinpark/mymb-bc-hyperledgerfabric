@@ -26,4 +26,6 @@ public class TokenDTO {
     private String sellStage;
 
     private LocalDateTime tokenCreatedTime;
+
+    private int ticketCnt;
 }
