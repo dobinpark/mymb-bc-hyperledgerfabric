@@ -149,8 +149,8 @@ public class TokenService {
             result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
 
             try {
-                // 1밀리초 대기
-                Thread.sleep(1);
+                // 100밀리초 대기
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 e.printStackTrace();
