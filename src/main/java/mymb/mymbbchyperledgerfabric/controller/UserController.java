@@ -14,23 +14,23 @@ public class UserController {
     private final UserService userService;
 
     // 유저 데이터 생성
-    @PostMapping("/createUserBlock")
-    public String createUserBlock(@RequestBody BCUserDTO BCUserDTO) {
+    @PostMapping("/createSigninUserBlock")
+    public String createSigninUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
         List<String> ownedToken = BCUserDTO.getOwnedToken();
 
-        return userService.createUserBlock(nickName, mymPoint, ownedToken);
+        return userService.createSigninUserBlock(nickName, mymPoint, ownedToken);
     }
 
     // 기존의 유저 데이터 생성
-    @PostMapping("/createUserBlockExisting")
-    public String createUserBlockExisting(@RequestBody BCUserDTO BCUserDTO) {
+    @PostMapping("/createLoginUserBlock")
+    public String createLoginUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
         List<String> ownedToken = BCUserDTO.getOwnedToken();
 
-        return userService.createUserBlockExisting(nickName, mymPoint, ownedToken);
+        return userService.createLoginUserBlock(nickName, mymPoint, ownedToken);
     }
 
     // 유저 닉네임 조회

@@ -24,12 +24,13 @@ public class TokenService {
     private final UserRepository userRepository;
     private final FundingRepository fundingRepository;
     private final PollingResultRepository pollingResultRepository;
+    private final TicketRepository ticketRepository;
 
     String caFilePath = "/opt/home/managedblockchain-tls-chain.pem";
     String channelID = "mychannel";
     String chaincodeName = "mycc";
 
-    // 단일 티켓을 발행하는 메서드
+    /*// 단일 티켓을 발행하는 메서드
     public String mintToken(String categoryCode, String pollingResultId, String tokenType) {
 
         // sellStage 초기화
@@ -84,10 +85,10 @@ public class TokenService {
                 caFilePath, channelID, chaincodeName, tokenNumber, categoryCode, pollingResultId, tokenType, sellStage));
 
         return "AMB " + ambResult + " MongoDB : Data saved successfully";
-    }
+    }*/
 
-    // 13,332장(임시로 30장) 티켓을 발행하는 메서드
-    public String mintTokens(String categoryCode, String pollingResultId, String tokenType) {
+    // n개의 티켓을 발행하는 메서드
+    public String mintToken(String categoryCode, String pollingResultId, String tokenType, int ticketCnt) {
 
         // sellStage 초기화
         String sellStage = "";
@@ -100,7 +101,7 @@ public class TokenService {
 
         StringBuilder result = new StringBuilder();
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < ticketCnt; i++) {
             // UUID 생성
             UUID uuid = UUID.randomUUID();
 
@@ -180,67 +181,6 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetAllTokens\"]}'", caFilePath, channelID, chaincodeName));
     }
 
-    // n개의 토큰들을 전송하는 메서드
-    public String transferTokens(String from, String to, ArrayList<String> tokenNumbers) {
-
-        // User 컬렉션에 닉네임을 이용하여 사용자 찾기
-        User fromUser = userRepository.findByNickName(from);
-        User toUser = userRepository.findByNickName(to);
-
-        if (fromUser == null && toUser != null) {
-            return "해당 from 유저는 User 컬렉션에 존재하지 않습니다.";
-        } else if (fromUser != null && toUser == null) {
-            return "해당 to 유저는 User 컬렉션에 존재하지 않습니다.";
-        } else if (fromUser == null && toUser == null) {
-            return "해당 from 유저와 to 유저는 User 컬렉션에 존재하지 않습니다.";
-        }
-
-        // BCUser 컬렉션에 닉네임을 이용하여 사용자 찾기
-        BCUser fromBCUser = BCUserRepository.findByNickName(from);
-        BCUser toBCUser = BCUserRepository.findByNickName(to);
-
-        if (fromBCUser == null && toBCUser != null) {
-            return "해당 from 유저는 BCUser 컬렉션에 존재하지 않습니다.";
-        } else if (fromBCUser != null && toBCUser == null) {
-            return "해당 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
-        } else if (fromBCUser == null && toBCUser == null) {
-            return "해당 from 유저와 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
-        }
-
-        // 보내는 사용자(from)가 소유한 토큰들을 가져오기
-        List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
-
-        // 보내는 사용자가 소유한 모든 토큰들을 확인하고 전송
-        for (Token token : tokens) {
-            // 토큰이 fromBCUser에게 있는지 확인
-            if (!fromBCUser.getOwnedToken().contains(token.getTokenNumber())) {
-                return "해당 토큰을 소유한 사용자가 아닙니다.";
-            }
-        }
-
-        // 받는 사용자(to)에게 토큰 전송
-        for (String tokenNumber : tokenNumbers) {
-            // 토큰의 소유자 변경
-            fromBCUser.getOwnedToken().remove(tokenNumber);
-            toBCUser.getOwnedToken().add(tokenNumber);
-        }
-
-        // BCUser 컬렉션 변경사항 저장
-        BCUserRepository.save(fromBCUser);
-        BCUserRepository.save(toBCUser);
-
-        // Transfer 활성 체인코드 실행
-        for (String tokenNumber : tokenNumbers) {
-            executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"TransferTokens\", \"%s\", \"%s\", [\"%s\"]]}'",
-                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
-        }
-
-        return "토큰 전송이 완료되었습니다.";
-    }
-
     // 지정된 토큰들을 전송하는 메서드
     public String transferToken(String from, String to, List<String> tokenNumbers) {
 
@@ -268,50 +208,35 @@ public class TokenService {
             return "해당 from 유저와 to 유저는 BCUser 컬렉션에 존재하지 않습니다.";
         }
 
-        // Pay 컬렉션에서 memberId와 User 컬렉션의 Id값이 동일한지 확인
-        Pay toPayUser = payRepository.findByMemberId(toUser.getId());
-
-        // Pay 정보가 올바르지 않은 경우 처리
-        if (toPayUser == null) {
-            return "해당 사용자의 결제 정보가 없습니다.";
-        }
-
         // 전송할 토큰 리스트 가져오기
         List<Token> tokens = tokenRepository.findByTokenNumberIn(tokenNumbers);
-
-        // 전체 토큰 수와 티켓 수 확인
-        int totalTokens = tokens.size(); // 도큐먼트들
-        int ticketAmount = toPayUser.getTicketAmount(); // 도큐먼트 안에 있는 티켓 수(ticketAmount)
-        if (totalTokens < ticketAmount) {
-            return "전송할 토큰의 수가 티켓 수보다 적습니다.";
+        if (tokens.size() != tokenNumbers.size()) {
+            return "일부 토큰이 존재하지 않습니다.";
         }
 
-        // 초기화된 tokenIndex 변수
-        int tokenIndex = 0;
+        // 지정된 토큰이 fromBCUser 소유인지 확인
+        for (String tokenNumber : tokenNumbers) {
+            if (!fromBCUser.getOwnedToken().contains(tokenNumber)) {
+                return "from 유저는 토큰 " + tokenNumber + "를 소유하지 않습니다.";
+            }
+        }
 
-        // 전체 토큰 수만큼 반복하여 토큰 전송 및 처리
-        for (int i = 0; i < totalTokens; i++) {
-            // toPayUser의 status와 ticketAmount를 확인하여 sellStage 결정
-            PayStatusEnum status = toPayUser.getStatus();
-            ticketAmount = toPayUser.getTicketAmount(); // 티켓 수가 변할 수 있으므로 반복마다 다시 가져옴
-            String sellStage = "";
-            if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 50000) {
-                sellStage = "private";
-            } else if ((status == PayStatusEnum.OD || status == PayStatusEnum.RD) && ticketAmount == 65000) {
-                sellStage = "public";
+        // 토큰 전송 및 처리
+        for (String tokenNumber : tokenNumbers) {
+            // 토큰 선택
+            Token token = tokens.stream().filter(t -> t.getTokenNumber().equals(tokenNumber)).findFirst().orElse(null);
+            if (token == null) {
+                continue; // 토큰이 존재하지 않으면 다음 토큰으로 넘어감
             }
 
-            // 토큰 선택
-            Token token = tokens.get(tokenIndex);
-
             // fromBCUser의 토큰 제거
-            fromBCUser.getOwnedToken().remove(token.getTokenNumber());
+            fromBCUser.getOwnedToken().remove(tokenNumber);
 
             // toBCUser에게 토큰 추가
-            toBCUser.getOwnedToken().add(token.getTokenNumber());
+            toBCUser.getOwnedToken().add(tokenNumber);
 
-            // 토큰의 sellStage 값 업데이트
-            token.setSellStage(sellStage);
+            // 요거는 sellStage 조건이 정해지면
+            /*// 토큰의 sellStage 값 업데이트 (필요한 경우)
             tokenRepository.save(token);
 
             // sellStage 값 변경 체인코드
@@ -319,22 +244,14 @@ public class TokenService {
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, token.getTokenNumber(), sellStage));
+                    caFilePath, channelID, chaincodeName, tokenNumber, token.getSellStage()));*/
 
             // transfer 활성 체인코드
             executeCommand(String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), token.getTokenNumber()));
-
-            // 토큰 인덱스 증가
-            tokenIndex++;
-
-            // 티켓 수 만큼 토큰을 전송했으면 종료
-            if (tokenIndex >= ticketAmount) {
-                break;
-            }
+                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
         }
 
         // 변경사항 저장
@@ -345,7 +262,7 @@ public class TokenService {
     }
 
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송하는 메서드
-    public String transferTokenExisting(String from, String to) {
+    public String transferOldToken(String from, String to) {
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
         User fromUser = userRepository.findByNickName(from);
         User toUser = userRepository.findByNickName(to);

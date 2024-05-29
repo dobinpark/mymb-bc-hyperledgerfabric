@@ -4,9 +4,6 @@ import lombok.RequiredArgsConstructor;
 import mymb.mymbbchyperledgerfabric.dto.BCUserDTO;
 import mymb.mymbbchyperledgerfabric.dto.TokenDTO;
 import mymb.mymbbchyperledgerfabric.entity.TransferRequest;
-import mymb.mymbbchyperledgerfabric.repository.BCUserRepository;
-import mymb.mymbbchyperledgerfabric.repository.TokenRepository;
-import mymb.mymbbchyperledgerfabric.repository.UserRepository;
 import mymb.mymbbchyperledgerfabric.service.TokenService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +14,6 @@ import org.springframework.web.bind.annotation.*;
 public class TokenController {
 
     private final TokenService tokenService;
-    private final UserRepository userRepository;
-    private final TokenRepository tokenRepository;
-    private final BCUserRepository bcUserRepository;
 
     // 컨텐츠 판매 티켓 Token 토큰 단일 발행
     @PostMapping("/mintToken")
@@ -27,18 +21,9 @@ public class TokenController {
         String categoryCode = tokenDTO.getCategoryCode();
         String pollingResultId = tokenDTO.getPollingResultId();
         String tokenType = tokenDTO.getTokenType();
+        int ticketCnt = 0;
 
-        return tokenService.mintToken(categoryCode, pollingResultId, tokenType);
-    }
-
-    // 컨텐츠 판매 티켓 Token 토큰 13,332장(임시로 30장) 발행
-    @PostMapping("/mintTokens")
-    public String mintTokens(@RequestBody TokenDTO tokenDTO) {
-        String categoryCode = tokenDTO.getCategoryCode();
-        String pollingResultId = tokenDTO.getPollingResultId();
-        String tokenType = tokenDTO.getTokenType();
-
-        return tokenService.mintTokens(categoryCode, pollingResultId, tokenType);
+        return tokenService.mintToken(categoryCode, pollingResultId, tokenType, ticketCnt);
     }
 
     // 토큰 ID 조회
@@ -59,10 +44,10 @@ public class TokenController {
         return tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
     }
 
-    // 토큰 전체 전송
-    @PutMapping("/transferTokenExisting")
+    // 기존의 Pay 컬렉션에 가지고 있는 토큰 전체 전송
+    @PutMapping("/transferOldToken")
     public String transferTokenExisting(@RequestBody TransferRequest transferRequest) {
-        return tokenService.transferTokenExisting(transferRequest.getFrom(), transferRequest.getTo());
+        return tokenService.transferOldToken(transferRequest.getFrom(), transferRequest.getTo());
     }
 
     // 유저의 포인트 업데이트
