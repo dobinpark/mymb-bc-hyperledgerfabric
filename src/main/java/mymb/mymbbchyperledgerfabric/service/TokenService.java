@@ -252,6 +252,14 @@ public class TokenService {
                             "--channelID %s " +
                             "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
                     caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
+
+            try {
+                // 100밀리초 대기
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
         }
 
         // 변경사항 저장
