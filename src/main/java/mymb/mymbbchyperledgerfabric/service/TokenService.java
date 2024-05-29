@@ -150,7 +150,7 @@ public class TokenService {
 
             try {
                 // 100밀리초 대기
-                Thread.sleep(100);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 e.printStackTrace();
