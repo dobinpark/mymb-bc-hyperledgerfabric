@@ -13,4 +13,8 @@ public interface PayRepository extends MongoRepository<Pay, String> {
     Pay findByMemberId(String memberId);
     List<Pay> findAllByMemberId(String memberId);
     Pay findByFundingId(String fundingId);
+    Pay findByTokenNumber(String tokenNumber);
+    Pay findByTicketId(String ticketId);
+    Pay findByStatus(PayStatusEnum status);
+    List<Pay> findByMemberIdAndStatus(String memberId, String status);
 }

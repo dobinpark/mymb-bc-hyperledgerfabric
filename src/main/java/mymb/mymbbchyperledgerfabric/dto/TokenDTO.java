@@ -21,11 +21,13 @@ public class TokenDTO {
 
     private String pollingResultId;
 
+    private String fundingId;
+
     private String tokenType;
 
     private String sellStage;
 
-    private LocalDateTime tokenCreatedTime;
+    private String imageUrl;
 
-    private int ticketCnt;
+    private LocalDateTime tokenCreatedTime;
 }

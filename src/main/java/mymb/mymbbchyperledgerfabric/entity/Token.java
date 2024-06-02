@@ -31,10 +31,16 @@ public class Token {
     private String pollingResultId;
 
     @Field
+    private String fundingId;
+
+    @Field
     private String tokenType;
 
     @Field
     private String sellStage;
+
+    @Field
+    private String imageUrl;
 
     @Field
     @JsonFormat(pattern = "yyyy.MM.dd/HH:mm/E")
