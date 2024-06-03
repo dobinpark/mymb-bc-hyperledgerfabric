@@ -30,4 +30,6 @@ public class TicketDTO {
     private String ticketName;
 
     private String fundingId;
+
+    private String sellStage;
 }

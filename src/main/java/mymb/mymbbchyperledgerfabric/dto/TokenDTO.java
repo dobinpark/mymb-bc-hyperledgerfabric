@@ -23,6 +23,8 @@ public class TokenDTO {
 
     private String fundingId;
 
+    private String ticketId;
+
     private String tokenType;
 
     private String sellStage;

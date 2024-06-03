@@ -34,6 +34,9 @@ public class Token {
     private String fundingId;
 
     @Field
+    private String ticketId;
+
+    @Field
     private String tokenType;
 
     @Field

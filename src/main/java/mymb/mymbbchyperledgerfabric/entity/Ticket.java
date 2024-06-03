@@ -43,4 +43,7 @@ public class Ticket {
 
     @Field
     private String fundingId;
+
+    @Field
+    private String sellStage;
 }

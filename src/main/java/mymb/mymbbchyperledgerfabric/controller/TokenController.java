@@ -21,10 +21,12 @@ public class TokenController {
         String categoryCode = tokenDTO.getCategoryCode();
         String pollingResultId = tokenDTO.getPollingResultId();
         String fundingId = tokenDTO.getFundingId();
+        String ticketId = tokenDTO.getTicketId();
         String tokenType = tokenDTO.getTokenType();
+        String sellStage = tokenDTO.getSellStage();
         int ticketCnt = 0;
 
-        return tokenService.mintToken(categoryCode, pollingResultId, fundingId, tokenType, ticketCnt);
+        return tokenService.mintToken(categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, ticketCnt);
     }
 
     // 해당 토큰을 조회
