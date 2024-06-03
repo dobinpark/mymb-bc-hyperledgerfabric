@@ -565,7 +565,7 @@ public class TokenService {
         }
     }
 
-    // 해당 유저가 가지고 있는 지정된 토큰들을 삭제하는 메서드
+    // 해당 유저가 가지고 있는 토큰들을 삭제하는 메서드
     public String deleteAllTokens(String nickName) {
 
         // MongoDB에서 사용자 찾기

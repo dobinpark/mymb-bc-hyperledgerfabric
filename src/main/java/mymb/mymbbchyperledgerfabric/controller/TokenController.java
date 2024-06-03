@@ -15,42 +15,43 @@ public class TokenController {
 
     private final TokenService tokenService;
 
-    // 컨텐츠 판매 티켓 Token 토큰 단일 발행
+    // n개의 티켓을 발행
     @PostMapping("/mintToken")
     public String mintToken(@RequestBody TokenDTO tokenDTO) {
         String categoryCode = tokenDTO.getCategoryCode();
         String pollingResultId = tokenDTO.getPollingResultId();
+        String fundingId = tokenDTO.getFundingId();
         String tokenType = tokenDTO.getTokenType();
-        int ticketCnt = tokenDTO.getTicketCnt();
+        int ticketCnt = 0;
 
-        return tokenService.mintToken(categoryCode, pollingResultId, tokenType, ticketCnt);
+        return tokenService.mintToken(categoryCode, pollingResultId, fundingId, tokenType, ticketCnt);
     }
 
-    // 토큰 ID 조회
+    // 해당 토큰을 조회
     @GetMapping("/token/{tokenNumber}")
     public String getToken(@PathVariable String tokenNumber) {
         return tokenService.getToken(tokenNumber);
     }
 
-    // 토큰 전체 조회
+    // 모든 토큰을 조회
     @GetMapping("/tokens")
     public String getAllTokens() {
         return tokenService.getAllTokens();
     }
 
-    // 토큰 전송
+    // 지전됭 토큰들을 전송
     @PutMapping("/transferToken")
     public String transferToken(@RequestBody TransferRequest transferRequest) {
         return tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
     }
 
-    // 기존의 Pay 컬렉션에 가지고 있는 토큰 전체 전송
+    // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송
     @PutMapping("/transferOldToken")
-    public String transferTokenExisting(@RequestBody TransferRequest transferRequest) {
+    public String transferOldToken(@RequestBody TransferRequest transferRequest) {
         return tokenService.transferOldToken(transferRequest.getFrom(), transferRequest.getTo());
     }
 
-    // 유저의 포인트 업데이트
+    // 커뮤니티 활동 포인트 적립
     @PutMapping("/updateMymPoint")
     public String updateMymPoint(@RequestBody BCUserDTO request) {
         return tokenService.updateMymPoint(request);
