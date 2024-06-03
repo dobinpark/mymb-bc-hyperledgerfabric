@@ -30,63 +30,6 @@ public class TokenService {
     String channelID = "mychannel";
     String chaincodeName = "mycc";
 
-    /*// 단일 티켓을 발행하는 메서드
-    public String mintToken(String categoryCode, String pollingResultId, String tokenType) {
-
-        // sellStage 초기화
-        String sellStage = "";
-
-        // UUID 생성
-        UUID uuid = UUID.randomUUID();
-
-        // tokenNumber 생성
-        String tokenNumber = generateTokenNumber(uuid.toString());
-        System.out.println("tokenNumber : " + tokenNumber);
-
-        // MongoDB에 TokenNumber가 이미 존재하는지 확인
-        Token existingToken = tokenRepository.findByTokenNumber(tokenNumber);
-        if (existingToken != null) {
-            // 이미 존재하는 경우에는 아무 동작도 수행하지 않고 종료
-            return "Token with tokenId " + tokenNumber + " already exists in MongoDB";
-        }
-
-        // AMB에 TokenNumber가 이미 존재하는지 확인
-        String ambResult = getToken(tokenNumber);
-        if (!ambResult.isEmpty()) {
-            // 이미 존재하는 경우에는 아무 동작도 수행하지 않고 종료
-            return "Token with tokenId " + tokenNumber + " already exists in AMB";
-        }
-
-        // BCUser 컬렉션의 ownedToken 필드에 토큰 추가
-        BCUser BCUser = BCUserRepository.findByNickName("(주)밈비"); // 닉네임을 "(주)밈비"로 지정
-        if (BCUser != null) {
-            BCUser.getOwnedToken().add(tokenNumber);
-            BCUserRepository.save(BCUser); // 변경된 사용자 정보 저장
-        } else {
-            return "사용자를 찾을 수 없습니다.";
-        }
-
-        // MongoDB에 데이터 저장
-        Token token = Token.builder()
-                .tokenNumber(tokenNumber)
-                .categoryCode(categoryCode)
-                .pollingResultId(pollingResultId)
-                .tokenType(tokenType)
-                .sellStage(sellStage)
-                .tokenCreatedTime(LocalDateTime.now())
-                .build();
-        tokenRepository.save(token);
-
-        // AMB에 데이터 저장 요청
-        ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                        "--tls --cafile %s " +
-                        "--channelID %s " +
-                        "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
-                caFilePath, channelID, chaincodeName, tokenNumber, categoryCode, pollingResultId, tokenType, sellStage));
-
-        return "AMB " + ambResult + " MongoDB : Data saved successfully";
-    }*/
-
     // n개의 티켓을 발행하는 메서드
     public String mintToken(String categoryCode, String pollingResultId, String fundingId, String tokenType, int ticketCnt) {
 
