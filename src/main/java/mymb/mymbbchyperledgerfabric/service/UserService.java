@@ -11,7 +11,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -125,6 +127,80 @@ public class UserService {
 
             return "AMB " + ambResult + " MongoDB : Data saved successfully";
         }
+    }
+
+    // User 컬렉션의 모든 도큐먼트 가져오는 메서드
+    public String createdUsers() {
+        List<User> users = userRepository.findAll();
+        List<String> results = new ArrayList<>();
+
+        for (User user : users) {
+            String nickName = user.getNickName();
+            int mymPoint = 0;
+            List<String> ownedToken = new ArrayList<>();
+
+            // MongoDB에 NickName이 이미 존재하는지 확인
+            BCUser existingBCUser = BCUserRepository.findByNickName(nickName);
+
+            // AMB에 NickName이 이미 존재하는지 확인
+            String ambResult = getUser(nickName);
+
+            // MongoDB와 AMB에 모두 데이터가 있는 경우
+            if (existingBCUser != null && !ambResult.isEmpty()) {
+                results.add("BCUser with nickname " + nickName + " already exists in both MongoDB and AMB");
+                continue;
+            }
+            // MongoDB에만 데이터가 있는 경우
+            else if (existingBCUser != null && ambResult.isEmpty()) {
+
+                ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                "--tls --cafile %s " +
+                                "--channelID %s " +
+                                "--name %s -c '{\"Args\":[\"CreateUserBlock\", \"%s\", \"%d\", \"%s\"]}'",
+                        caFilePath, channelID, chaincodeName, nickName, mymPoint, ownedToken));
+
+                results.add("BCUser with nickname " + nickName + " already exists in MongoDB");
+                continue;
+            }
+            // AMB에만 데이터가 있는 경우
+            else if (existingBCUser == null && !ambResult.isEmpty()) {
+
+                // MongoDB에 데이터 저장
+                BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
+                        .nickName(nickName)
+                        .mymPoint(mymPoint)
+                        .ownedToken(ownedToken)
+                        .blockCreatedTime(LocalDateTime.now())
+                        .build();
+                BCUserRepository.save(BCUser);
+
+                results.add("AMB with nickname " + nickName + " already exists in AMB");
+                continue;
+            }
+            // 둘 다 데이터가 없는 경우
+            else {
+                //AMB에 데이터 저장 요청
+                ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                                "--tls --cafile %s " +
+                                "--channelID %s " +
+                                "--name %s -c '{\"Args\":[\"CreateUserBlock\", \"%s\", \"%d\", \"%s\"]}'",
+                        caFilePath, channelID, chaincodeName, nickName, mymPoint, ownedToken));
+
+                // MongoDB에 데이터 저장
+                BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
+                        .nickName(nickName)
+                        .mymPoint(mymPoint)
+                        .ownedToken(ownedToken)
+                        .blockCreatedTime(LocalDateTime.now())
+                        .build();
+                BCUserRepository.save(BCUser);
+
+                results.add("AMB " + ambResult + " MongoDB : Data saved successfully");
+            }
+        }
+
+        // 결과 리스트를 문자열로 변환하여 반환
+        return results.stream().collect(Collectors.joining("\n"));
     }
 
     // 해당 유저를 조회하는 메서드

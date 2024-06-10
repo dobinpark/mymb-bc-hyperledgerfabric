@@ -3,6 +3,8 @@ package mymb.mymbbchyperledgerfabric.controller;
 import lombok.RequiredArgsConstructor;
 import mymb.mymbbchyperledgerfabric.dto.BCUserDTO;
 import mymb.mymbbchyperledgerfabric.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,33 +17,44 @@ public class UserController {
 
     // 유저 데이터 생성
     @PostMapping("/createSigninUserBlock")
-    public String createSigninUserBlock(@RequestBody BCUserDTO BCUserDTO) {
+    public ResponseEntity<?> createSigninUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
         List<String> ownedToken = BCUserDTO.getOwnedToken();
 
-        return userService.createSigninUserBlock(nickName, mymPoint, ownedToken);
+        String result = userService.createSigninUserBlock(nickName, mymPoint, ownedToken);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 기존의 유저 데이터 생성
     @PostMapping("/createLoginUserBlock")
-    public String createLoginUserBlock(@RequestBody BCUserDTO BCUserDTO) {
+    public ResponseEntity<?> createLoginUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
         List<String> ownedToken = BCUserDTO.getOwnedToken();
 
-        return userService.createLoginUserBlock(nickName, mymPoint, ownedToken);
+        String result = userService.createLoginUserBlock(nickName, mymPoint, ownedToken);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    // 기존의 유저 데이터 생성
+    @PostMapping("/createdUsers")
+    public ResponseEntity<?> createdUsers() {
+        String result = userService.createdUsers();
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 유저 닉네임 조회
     @GetMapping("/user/{nickName}")
-    public String getUser(@PathVariable String nickName) {
-        return userService.getUser(nickName);
+    public ResponseEntity<?> getUser(@PathVariable String nickName) {
+        String result = userService.getUser(nickName);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 유저 전체 조회
     @GetMapping("/users")
-    public String getAllUsers() {
-        return userService.getAllUsers();
+    public ResponseEntity<?> getAllUsers() {
+        String result = userService.getAllUsers();
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 }

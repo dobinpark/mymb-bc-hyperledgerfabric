@@ -17,7 +17,7 @@ public class TokenController {
 
     // n개의 티켓을 발행
     @PostMapping("/mintToken")
-    public String mintToken(@RequestBody TokenDTO tokenDTO) {
+    public ResponseEntity<?> mintToken(@RequestBody TokenDTO tokenDTO) {
         String categoryCode = tokenDTO.getCategoryCode();
         String pollingResultId = tokenDTO.getPollingResultId();
         String fundingId = tokenDTO.getFundingId();
@@ -26,42 +26,48 @@ public class TokenController {
         String sellStage = tokenDTO.getSellStage();
         int ticketCnt = 0;
 
-        return tokenService.mintToken(categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, ticketCnt);
+        String result = tokenService.mintToken(categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, ticketCnt);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 해당 토큰을 조회
     @GetMapping("/token/{tokenNumber}")
-    public String getToken(@PathVariable String tokenNumber) {
-        return tokenService.getToken(tokenNumber);
+    public ResponseEntity<?> getToken(@PathVariable String tokenNumber) {
+        String result = tokenService.getToken(tokenNumber);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 모든 토큰을 조회
     @GetMapping("/tokens")
-    public String getAllTokens() {
-        return tokenService.getAllTokens();
+    public ResponseEntity<?> getAllTokens() {
+        String result = tokenService.getAllTokens();
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 지전됭 토큰들을 전송
     @PutMapping("/transferToken")
-    public String transferToken(@RequestBody TransferRequest transferRequest) {
-        return tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
+    public ResponseEntity<?> transferToken(@RequestBody TransferRequest transferRequest) {
+        tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo());
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송
     @PutMapping("/transferOldToken")
-    public String transferOldToken(@RequestBody TransferRequest transferRequest) {
-        return tokenService.transferOldToken(transferRequest.getFrom(), transferRequest.getTo());
+    public ResponseEntity<?> transferOldToken() {
+        tokenService.transferOldToken();
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     // 커뮤니티 활동 포인트 적립
     @PutMapping("/updateMymPoint")
-    public String updateMymPoint(@RequestBody BCUserDTO request) {
-        return tokenService.updateMymPoint(request);
+    public ResponseEntity<?> updateMymPoint(@RequestBody BCUserDTO request) {
+        tokenService.updateMymPoint(request);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     // 해당 유저가 가지고 있는 지정된 토큰들을 삭제
     @DeleteMapping("/deleteAllTokens/{nickName}")
-    public ResponseEntity<String> deleteAllTokens(@PathVariable String nickName) {
+    public ResponseEntity<?> deleteAllTokens(@PathVariable String nickName) {
         String result = tokenService.deleteAllTokens(nickName);
         if (result.contains("not found")) {
             return new ResponseEntity<>(result, HttpStatus.NOT_FOUND);
