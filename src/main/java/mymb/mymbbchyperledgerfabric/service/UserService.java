@@ -160,6 +160,14 @@ public class UserService {
                         caFilePath, channelID, chaincodeName, nickName, mymPoint, ownedToken));
 
                 results.add("BCUser with nickname " + nickName + " already exists in MongoDB");
+
+                // 3초 대기
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                }
                 continue;
             }
             // AMB에만 데이터가 있는 경우
@@ -175,6 +183,13 @@ public class UserService {
                 BCUserRepository.save(BCUser);
 
                 results.add("AMB with nickname " + nickName + " already exists in AMB");
+                // 3초 대기
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                }
                 continue;
             }
             // 둘 다 데이터가 없는 경우
@@ -196,9 +211,15 @@ public class UserService {
                 BCUserRepository.save(BCUser);
 
                 results.add("AMB " + ambResult + " MongoDB : Data saved successfully");
+                // 3초 대기
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                }
             }
         }
-
         // 결과 리스트를 문자열로 변환하여 반환
         return results.stream().collect(Collectors.joining("\n"));
     }
