@@ -70,7 +70,9 @@ public class TokenService {
             }
 
             // BCUser 컬렉션에 토큰 추가
-            BCUser.getOwnedToken().add(tokenNumber);
+            synchronized (BCUser.getOwnedToken()) {
+                BCUser.getOwnedToken().add(tokenNumber);
+            }
 
             // MongoDB에 데이터 저장
             Token token = Token.builder()
@@ -96,7 +98,7 @@ public class TokenService {
             result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
 
             try {
-                // 100밀리초 대기
+                // 3000밀리초 대기
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

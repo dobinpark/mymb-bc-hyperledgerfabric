@@ -24,7 +24,7 @@ public class TokenController {
         String ticketId = tokenDTO.getTicketId();
         String tokenType = tokenDTO.getTokenType();
         String sellStage = tokenDTO.getSellStage();
-        int ticketCnt = 0;
+        int ticketCnt = tokenDTO.getTicketCnt();
 
         String result = tokenService.mintToken(categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, ticketCnt);
         return new ResponseEntity<>(result, HttpStatus.OK);

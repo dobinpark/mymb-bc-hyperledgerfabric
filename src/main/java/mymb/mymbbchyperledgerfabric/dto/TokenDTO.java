@@ -31,5 +31,7 @@ public class TokenDTO {
 
     private String imageUrl;
 
+    private int ticketCnt;
+
     private LocalDateTime tokenCreatedTime;
 }
