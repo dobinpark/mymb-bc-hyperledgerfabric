@@ -44,6 +44,13 @@ public class TokenController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
+    // 누락된 유저 ID를 찾는 메서드
+    @GetMapping("/token/missingUsers")
+    public ResponseEntity<?> findMissingUsers() {
+        String result = tokenService.findMissingUsers();
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
     // 지전됭 토큰들을 전송
     @PutMapping("/transferToken")
     public ResponseEntity<?> transferToken(@RequestBody TransferRequest transferRequest) {

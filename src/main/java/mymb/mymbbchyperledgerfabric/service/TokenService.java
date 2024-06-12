@@ -430,7 +430,7 @@ public class TokenService {
 
     public String transferOldToken() {
 
-        // Pay 컬렉션에서 status가 "OD"인 도큐먼트들을 조회
+        // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
         List<Pay> payList = payRepository.findByStatus("OD");
 
         // 각 도큐먼트마다 작업 수행
@@ -439,6 +439,7 @@ public class TokenService {
             User user = userRepository.findById(pay.getMemberId()).orElse(null);
             if (user == null) continue;
 
+            // 해당 User 컬렉션의 도큐먼트 닉네임 값을 저장
             String userNickName = user.getNickName();
 
             // BCUser 컬렉션에서 닉네임이 "(주)밈비"인 유저를 찾음
@@ -447,20 +448,31 @@ public class TokenService {
 
             // BCUser 컬렉션에서 해당 사용자의 닉네임을 가진 유저를 찾음
             BCUser toBCUser = BCUserRepository.findByNickName(userNickName);
-            if (toBCUser == null) {
-                continue; // toBCUser를 찾을 수 없으면 다음 도큐먼트로 넘어감
-            }
+            if (toBCUser == null) continue; // toBCUser를 찾을 수 없으면 다음 도큐먼트로 넘어감
 
-            // ticketCount만큼 토큰 전송
+            // ticketCount 만큼 토큰 전송
             int ticketCount = pay.getTicketCount();
             List<String> transferTokens = new ArrayList<>();
             for (int i = 0; i < ticketCount; i++) {
-                if (!fromBCUser.getOwnedToken().isEmpty()) {
-                    String token = fromBCUser.getOwnedToken().remove(0);
-                    transferTokens.add(token);
-                } else {
+                boolean tokenFound = false;
+
+                // 송신자의 ownedToken 목록에서 ticketId가 일치하는 토큰을 찾음
+                Iterator<String> iterator = fromBCUser.getOwnedToken().iterator();
+                while (iterator.hasNext()) {
+                    String tokenNumber = iterator.next();
+                    Token token = tokenRepository.findByTokenNumber(tokenNumber);
+                    if (token != null && token.getTicketId().equals(pay.getTicketId())) {
+                        // 일치하는 토큰을 찾으면 전송 목록에 추가하고 목록에서 제거
+                        transferTokens.add(tokenNumber);
+                        iterator.remove();
+                        tokenFound = true;
+                        break;
+                    }
+                }
+
+                if (!tokenFound) {
                     // 토큰 부족 메세지 출력
-                    System.out.println("(주)밈비가 가지고 있는 토큰이 부족합니다.");
+                    System.out.println("(주)밈비가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
                     return "토큰 전송이 실패했습니다.";
                 }
             }
@@ -547,6 +559,34 @@ public class TokenService {
             return result.toString();
         } else {
             return "BCUser with nickname " + nickName + " not found in MongoDB";
+        }
+    }
+
+    public String findMissingUsers() {
+
+        // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
+        List<Pay> payList = payRepository.findByStatus("OD");
+
+        // 누락된 유저 ID를 저장할 리스트
+        List<String> missingUserIds = new ArrayList<>();
+
+        // 각 도큐먼트마다 작업 수행
+        for (Pay pay : payList) {
+            // memberId 필드값을 통해 User 컬렉션에서 _id값을 찾음
+            Optional<User> userOptional = userRepository.findById(pay.getMemberId());
+            if (!userOptional.isPresent()) {
+                // User가 존재하지 않으면 missingUserIds 리스트에 추가
+                missingUserIds.add(pay.getMemberId());
+            }
+        }
+
+        // 누락된 유저 ID를 출력
+        if (missingUserIds.isEmpty()) {
+            return "모든 memberId가 유효합니다.";
+        } else {
+            String missingIds = String.join(", ", missingUserIds);
+            System.out.println("유효하지 않은 memberId: " + missingIds);
+            return "유효하지 않은 memberId: " + missingIds;
         }
     }
 
