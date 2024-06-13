@@ -1,0 +1,223 @@
+체인코드가 수정되면 contract.tar.gz 파일을 삭제하고 라벨을 업데이트하고
+다시 패키징부터 시작해서 시퀀스도 업데이트
+
+Step 7.1: Install Vendor Dependencies(권한 변경 및 Go 모듈 의존성 관리)
+sudo chown -R ec2-user:ec2-user mymb-bc-chaincode/
+cd mymb-bc-chaincode/chaincode/mymb/go/
+GO114MODULE=on go mod vendor
+cd -
+
+Step 7.2: Create the Chaincode Package(체인코드 패키징)
+docker exec cli peer lifecycle chaincode package ./contract.tar.gz \
+--path mymb-bc-chaincode/chaincode/mymb/go/ \
+--label contract_7
+
+Step 7.3: Install the Package(체인코드 설치)
+docker exec cli peer lifecycle chaincode install contract.tar.gz
+
+Step 7.4: Verify the Package(설치된 체인코드 확인)
+docker exec cli peer lifecycle chaincode queryinstalled
+
+Package ID
+contract_7:9d6fe4ae5ab6d5f814d3d058a176659e5ffb3e40801ba884a5583c93aa630bba
+Label: contract_7
+
+Step 7.5: Approve the Chaincode(체인코드 승인)
+export CC_PACKAGE_ID=contract_7:9d6fe4ae5ab6d5f814d3d058a176659e5ffb3e40801ba884a5583c93aa630bba
+docker exec cli peer lifecycle chaincode approveformyorg \
+--orderer $ORDERER --tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel --name mycc --version v0 --sequence 7 --package-id $CC_PACKAGE_ID
+
+Step 7.6: Check Commit Readiness(커밋 준비 상태 확인)
+docker exec cli peer lifecycle chaincode checkcommitreadiness \
+--orderer $ORDERER --tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel --name mycc --version v0 --sequence 7
+
+Step 7.7: Commit the Chaincode(체인코드 커밋)
+docker exec cli peer lifecycle chaincode commit \
+--orderer $ORDERER --tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel --name mycc --version v0 --sequence 7
+
+Step 7.8: Verify the Chaincode(커밋된 체인코드 확인)
+docker exec cli peer lifecycle chaincode querycommitted \
+--channelID mychannel
+
+--------------------------여기까지 체인코드 등록--------------------------------
+체인코드 명령어
+
+(토큰 데이터 셋)
+TokenNumber      string
+CategoryCode     string
+PollingResultID  string
+TokenType        string
+SellStage        string
+TokenCreatedTime time.Time
+
+
+명령어 뒤에 “| jq” 라고 입력하면 json 형식으로 나옴
+'(주)밈비' 계정에 단일 토큰을 생성하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["MintToken", "tokenNumber", "categoryCode", "pollingResultId", "tokenType", "sellStage"]}'
+
+특정 토큰의 정보를 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetToken", "tokenNumber"]}' | jq
+
+모든 토큰의 정보를 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetAllTokens"]}' | jq
+
+티켓의 sellStage 필드값을 변경하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["UpdateSellStage", "tokenNumber", "sellStage"]}'
+
+특정 유저가 가지고 있는 특정 토큰을 삭제하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["DeleteTokens", "nickName", [“tokenNumber”]]}'
+
+특정 유저가 가지고 있는 모든 토큰들을 삭제하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["DeleteAllTokens", "nickName"]}'
+
+특정 유저가 가지고 있는 토큰들을 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetUserOwnedTokens", "Soohokim"]}' | jq
+
+모든 토큰의 토탈이 몇인지 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetTotalTokens"]}' | jq
+
+—-------------------여기까지 컨텐츠 판매 티켓 NFT 명령어------------------------
+
+(유저 데이터 셋)
+NickName        string
+MymPoint        int64
+OwnedToken      []string
+BlockCreateTime time.Time
+
+유저 블록을 생성하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["CreateUserBlock", "nickName", "mymPoint", "[ownedToken]"]}'
+
+특정 유저의 정보를 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetUser", "nickName"]}' | jq
+
+모든 유저의 정보를 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetAllUsers"]}' | jq
+
+—--------------------------여기까지 User  명령어--------------------------------
+
+유저의 활동 포인트를 적립하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["UpdateMymPoint", "nickName", "delta"]}'
+
+특정 유저가 다른 유저에게 단일 토큰을 전송하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["TransferToken", "from", "to", "tokenNumber"]}'
+
+특정 유저가 다른 유저에게 모든 토큰들을 전송하는 함수(invoke)
+docker exec cli peer chaincode invoke \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["TransferAllTokens", "from", "to"]}'
+
+모든 유저의 토탈이 몇인지 조회하는 함수(query)
+docker exec cli peer chaincode query \
+--tls --cafile /opt/home/managedblockchain-tls-chain.pem \
+--channelID mychannel \
+--name mycc \
+--ctor '{"Args":["GetTotalUsers"]}' | jq
+
+
+—----------------------여기까지 특정 기능 명령어--------------------------------
+
+매니지드 블록체인을 셋업할 때 필요한 명령어들
+
+aws managedblockchain get-member \
+--network-id n-YWG7DAJ42NC2THQGGQ4HUO2D4Q \
+--member-id m-PU45LGXQXBAI3GTA6PPFIIDTT4
+
+버전이 달라짐에 따라
+sudo curl -L \
+https://github.com/docker/compose/releases/download/1.24.0/docker-compose-`uname \
+-s`-`uname -m` -o /usr/local/bin/docker-compose
+코드에서 1.20 -> 1.24로 바꾸어 주어야 하고
+docker-compose-cli.yaml 파일에서 version: ‘2’에서 version: ‘2.1’로
+수정해주어야 함.
+
+aws s3 cp s3://ap-northeast-2.managedblockchain/etc/managedblockchain-tls-chain.pem  /home/ec2-user/managedblockchain-tls-chain.pem
+
+fabric-ca-client enroll \
+-u https://adminmymber:adminMymber123@ca.m-3vdim2zknvctrff43bgpjuts3u.n-fbbstvi445dwtdl4zu7vanmz7a.managedblockchain.ap-northeast-2.amazonaws.com:30002 \
+--tls.certfiles /home/ec2-user/managedblockchain-tls-chain.pem -M /home/ec2-user/admin-msp
+
+
+채널 설정
+
+docker exec cli configtxgen \
+-outputCreateChannelTx /opt/home/mychannel1.pb \
+-profile OneOrgChannel -channelID mychannel1 \
+--configPath /opt/home/
+
+docker exec cli peer channel create -c mychannel1 \
+-f /opt/home/mychannel1.pb -o $ORDERER \
+--cafile /opt/home/managedblockchain-tls-chain.pem --tls
+
+docker exec cli peer channel join -b mychannel1.block \
+-o $ORDERER --cafile /opt/home/managedblockchain-tls-chain.pem --tls
+
+—-------------------------------------------------------------------------------
+
+docker exec cli configtxgen \
+-outputCreateChannelTx /opt/home/mychannel2.pb \
+-profile OneOrgChannel -channelID mychannel2 \
+--configPath /opt/home/
+
+docker exec cli peer channel create -c mychannel2 \
+-f /opt/home/mychannel2.pb -o $ORDERER \
+--cafile /opt/home/managedblockchain-tls-chain.pem --tls
+
+docker exec cli peer channel join -b mychannel2.block \
+-o $ORDERER --cafile /opt/home/managedblockchain-tls-chain.pem --tls
