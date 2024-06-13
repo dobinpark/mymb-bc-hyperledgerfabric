@@ -407,35 +407,37 @@ public class TokenService {
     }
 
     // 지정된 유저의 Pay 컬렉션 조건에 맞춘 메서드
-    public String transferTokens(List<String> toBCUserNickName) {
+    public String transferTokens(String from, String to) {
 
         // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
         List<Pay> payList = payRepository.findByStatus("OD");
 
-        // BCUser 컬렉션에서 닉네임이 "(주)밈비"인 유저를 찾음
-        BCUser fromBCUser = BCUserRepository.findByNickName("(주)밈비");
-        if (fromBCUser == null) {
-            return "(주)밈비 유저를 찾을 수 없습니다.";
+        // User 컬렉션에서 fromUserNickName을 가진 유저를 찾음
+        User fromUser = userRepository.findByNickName(from);
+        if (fromUser == null) {
+            return from + " 유저를 찾을 수 없습니다.";
         }
 
-        // BCUser 컬렉션에서 toBCUserNickName을 가진 유저를 찾음
-        BCUser toBCUser = BCUserRepository.findByNickName(toBCUserNickName.toString());
+        // User 컬렉션에서 toUserNickName을 가진 유저를 찾음
+        User toUser = userRepository.findByNickName(to);
+        if (toUser == null) {
+            return to + " 유저를 찾을 수 없습니다.";
+        }
+
+        // BCUser 컬렉션에서 fromUserNickName을 가진 유저를 찾음
+        BCUser fromBCUser = BCUserRepository.findByNickName(from);
+        if (fromBCUser == null) {
+            return from + " BCUser를 찾을 수 없습니다.";
+        }
+
+        // BCUser 컬렉션에서 toUserNickName을 가진 유저를 찾음
+        BCUser toBCUser = BCUserRepository.findByNickName(to);
         if (toBCUser == null) {
-            return toBCUserNickName + " 유저를 찾을 수 없습니다.";
+            return to + " BCUser를 찾을 수 없습니다.";
         }
 
         // 각 도큐먼트마다 작업 수행
         for (Pay pay : payList) {
-            // memberId 필드값을 통해 User 컬렉션에서 _id값을 찾고 닉네임을 저장
-            User user = userRepository.findById(pay.getMemberId()).orElse(null);
-            if (user == null) continue;
-
-            // 해당 User 컬렉션의 도큐먼트 닉네임 값을 저장
-            String userNickName = user.getNickName();
-
-            // toBCUserNickName과 일치하는 닉네임을 가진 유저의 도큐먼트에 대해서만 작업 수행
-            if (!userNickName.equals(toBCUserNickName)) continue;
-
             // ticketCount 만큼 토큰 전송
             int ticketCount = pay.getTicketCount();
             List<String> transferTokens = new ArrayList<>();
@@ -458,7 +460,7 @@ public class TokenService {
 
                 if (!tokenFound) {
                     // 토큰 부족 메시지 출력
-                    System.out.println("(주)밈비가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
+                    System.out.println(from + "가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
                     return "토큰 전송이 실패했습니다.";
                 }
             }
@@ -470,7 +472,7 @@ public class TokenService {
                             "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
                     caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), transferTokens));
 
-            // 2.4 3초 대기
+            // 3초 대기
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
@@ -478,7 +480,7 @@ public class TokenService {
                 e.printStackTrace();
             }
 
-            // 2.5 변경사항 저장
+            // 변경사항 저장
             BCUserRepository.save(fromBCUser);
             BCUserRepository.save(toBCUser);
         }

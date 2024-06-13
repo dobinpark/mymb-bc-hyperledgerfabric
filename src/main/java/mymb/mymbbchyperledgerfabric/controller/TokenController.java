@@ -51,7 +51,7 @@ public class TokenController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    // 지전됭 토큰들을 전송
+    // 지정된 토큰들을 전송
     @PutMapping("/transferToken")
     public ResponseEntity<?> transferToken(@RequestBody TransferRequest transferRequest) {
         tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
@@ -68,7 +68,7 @@ public class TokenController {
     // 지정된 유저의 Pay 컬렉션 조건에 맞춘 토큰 전송
     @PutMapping("/transferTokens")
     public ResponseEntity<?> transferTokens(@RequestBody TransferRequest transferRequest) {
-        String result = tokenService.transferTokens(transferRequest.getTokenNumbers());
+        String result = tokenService.transferTokens(transferRequest.getFrom(), transferRequest.getTo());
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
