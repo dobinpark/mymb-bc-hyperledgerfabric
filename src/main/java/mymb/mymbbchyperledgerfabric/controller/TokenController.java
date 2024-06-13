@@ -54,15 +54,22 @@ public class TokenController {
     // 지전됭 토큰들을 전송
     @PutMapping("/transferToken")
     public ResponseEntity<?> transferToken(@RequestBody TransferRequest transferRequest) {
-        tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo());
+        tokenService.transferToken(transferRequest.getFrom(), transferRequest.getTo(), transferRequest.getTokenNumbers());
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     // 기존의 Pay 컬렉션에 가지고 있는 모든 도큐먼트들을 전송
     @PutMapping("/transferOldToken")
     public ResponseEntity<?> transferOldToken() {
-        tokenService.transferOldToken();
-        return new ResponseEntity<>(HttpStatus.OK);
+        String result = tokenService.transferOldToken();
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    // 지정된 유저의 Pay 컬렉션 조건에 맞춘 토큰 전송
+    @PutMapping("/transferTokens")
+    public ResponseEntity<?> transferTokens(@RequestBody TransferRequest transferRequest) {
+        String result = tokenService.transferTokens(transferRequest.getTokenNumbers());
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 커뮤니티 활동 포인트 적립
