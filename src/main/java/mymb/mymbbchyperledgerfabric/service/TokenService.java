@@ -32,16 +32,10 @@ public class TokenService {
     String chaincodeName = "mycc";
 
     // n개의 티켓을 발행하는 메서드
-    public String mintToken(String categoryCode, String pollingResultId, String fundingId, String ticketId, String tokenType, String sellStage, int ticketCnt) {
+    public String mintToken(String owner, String categoryCode, String pollingResultId, String fundingId, String ticketId, String tokenType, String sellStage, int ticketCnt) {
 
         // imageUrl 초기화
         String imageUrl = "";
-
-        // BCUser 컬렉션의 ownedToken 필드에 토큰 추가
-        BCUser BCUser = BCUserRepository.findByNickName("(주)밈비"); // 닉네임을 "(주)밈비"로 지정
-        if (BCUser == null) {
-            return "사용자를 찾을 수 없습니다.";
-        }
 
         StringBuilder result = new StringBuilder();
 
@@ -69,14 +63,10 @@ public class TokenService {
                 continue;
             }
 
-            // BCUser 컬렉션에 토큰 추가
-            synchronized (BCUser.getOwnedToken()) {
-                BCUser.getOwnedToken().add(tokenNumber);
-            }
-
             // MongoDB에 데이터 저장
             Token token = Token.builder()
                     .tokenNumber(tokenNumber)
+                    .owner(owner)
                     .categoryCode(categoryCode)
                     .pollingResultId(pollingResultId)
                     .fundingId(fundingId)
@@ -105,9 +95,6 @@ public class TokenService {
                 e.printStackTrace();
             }
         }
-
-        // BCUser 저장 (한 번만 저장)
-        BCUserRepository.save(BCUser);
 
         return result.toString();
     }
@@ -488,7 +475,6 @@ public class TokenService {
         // 모든 작업이 완료되면 메시지 반환
         return "토큰 전송이 완료되었습니다.";
     }
-
 
     // 커뮤니티 활동 포인트 적립하는 메서드
     public String updateMymPoint(BCUserDTO request) {

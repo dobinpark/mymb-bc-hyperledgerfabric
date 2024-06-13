@@ -18,6 +18,7 @@ public class TokenController {
     // n개의 티켓을 발행
     @PostMapping("/mintToken")
     public ResponseEntity<?> mintToken(@RequestBody TokenDTO tokenDTO) {
+        String owner = tokenDTO.getOwner();
         String categoryCode = tokenDTO.getCategoryCode();
         String pollingResultId = tokenDTO.getPollingResultId();
         String fundingId = tokenDTO.getFundingId();
@@ -26,7 +27,9 @@ public class TokenController {
         String sellStage = tokenDTO.getSellStage();
         int ticketCnt = tokenDTO.getTicketCnt();
 
-        String result = tokenService.mintToken(categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, ticketCnt);
+        String result = tokenService.mintToken(
+                owner, categoryCode, pollingResultId, fundingId,
+                ticketId, tokenType, sellStage, ticketCnt);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 

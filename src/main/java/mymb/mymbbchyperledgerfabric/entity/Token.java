@@ -25,6 +25,9 @@ public class Token {
     private String tokenNumber;
 
     @Field
+    private String owner;
+
+    @Field
     private String categoryCode;
 
     @Field

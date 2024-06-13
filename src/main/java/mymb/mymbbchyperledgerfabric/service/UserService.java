@@ -27,8 +27,7 @@ public class UserService {
     String chaincodeName = "mycc";
 
     // 유저 정보 블록을 생성하는 메서드(회원가입시)
-    public String createSigninUserBlock(String nickName, int mymPoint, List<String> ownedToken) {
-
+    public String createSigninUserBlock(String nickName, int mymPoint) {
         // MongoDB에 NickName이 이미 존재하는지 확인
         User existingUser = userRepository.findByNickName(nickName);
         if (existingUser != null) {
@@ -50,18 +49,20 @@ public class UserService {
             return "BCUser with nickname " + nickName + " already exists in AMB";
         }
 
-        //AMB에 데이터 저장 요청
+        // ownedToken 지역 변수 생성
+        List<String> ownedToken = new ArrayList<>();
+
+        // AMB에 데이터 저장 요청
         ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                         "--tls --cafile %s " +
                         "--channelID %s " +
                         "--name %s -c '{\"Args\":[\"CreateUserBlock\", \"%s\", \"%d\", \"%s\"]}'",
                 caFilePath, channelID, chaincodeName, nickName, mymPoint, ownedToken));
 
-        // MongoDB에 데이터 저장
+        // MongoDB에 데이터 저장 (ownedToken 필드 제외)
         BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
                 .nickName(nickName)
                 .mymPoint(mymPoint)
-                .ownedToken(ownedToken)
                 .blockCreatedTime(LocalDateTime.now())
                 .build();
         BCUserRepository.save(BCUser);
@@ -70,13 +71,15 @@ public class UserService {
     }
 
     // 유저 정보 블록을 생성하는 메서드(기존에 가입되어 있는 유저가 있을시)
-    public String createLoginUserBlock(String nickName, int mymPoint, List<String> ownedToken) {
-
+    public String createLoginUserBlock(String nickName, int mymPoint) {
         // MongoDB에 NickName이 이미 존재하는지 확인
         BCUser existingBCUser = BCUserRepository.findByNickName(nickName);
 
         // AMB에 NickName이 이미 존재하는지 확인
         String ambResult = getUser(nickName);
+
+        // ownedToken 지역 변수 생성
+        List<String> ownedToken = new ArrayList<>();
 
         // MongoDB와 AMB에 모두 데이터가 있는 경우
         if (existingBCUser != null && !ambResult.isEmpty()) {
@@ -84,7 +87,7 @@ public class UserService {
         }
         // MongoDB에만 데이터가 있는 경우
         else if (existingBCUser != null && ambResult.isEmpty()) {
-
+            // AMB에 데이터 저장 요청
             ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
@@ -95,12 +98,10 @@ public class UserService {
         }
         // AMB에만 데이터가 있는 경우
         else if (existingBCUser == null && !ambResult.isEmpty()) {
-
-            // MongoDB에 데이터 저장
+            // MongoDB에 데이터 저장 (ownedToken 필드 제외)
             BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
                     .nickName(nickName)
                     .mymPoint(mymPoint)
-                    .ownedToken(ownedToken)
                     .blockCreatedTime(LocalDateTime.now())
                     .build();
             BCUserRepository.save(BCUser);
@@ -109,18 +110,17 @@ public class UserService {
         }
         // 둘 다 데이터가 없는 경우
         else {
-            //AMB에 데이터 저장 요청
+            // AMB에 데이터 저장 요청
             ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s -c '{\"Args\":[\"CreateUserBlock\", \"%s\", \"%d\", \"%s\"]}'",
                     caFilePath, channelID, chaincodeName, nickName, mymPoint, ownedToken));
 
-            // MongoDB에 데이터 저장
+            // MongoDB에 데이터 저장 (ownedToken 필드 제외)
             BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
                     .nickName(nickName)
                     .mymPoint(mymPoint)
-                    .ownedToken(ownedToken)
                     .blockCreatedTime(LocalDateTime.now())
                     .build();
             BCUserRepository.save(BCUser);
@@ -152,7 +152,7 @@ public class UserService {
             }
             // MongoDB에만 데이터가 있는 경우
             else if (existingBCUser != null && ambResult.isEmpty()) {
-
+                // AMB에 데이터 저장 요청
                 ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                                 "--tls --cafile %s " +
                                 "--channelID %s " +
@@ -172,17 +172,16 @@ public class UserService {
             }
             // AMB에만 데이터가 있는 경우
             else if (existingBCUser == null && !ambResult.isEmpty()) {
-
-                // MongoDB에 데이터 저장
+                // MongoDB에 데이터 저장 (ownedToken 필드 제외)
                 BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
                         .nickName(nickName)
                         .mymPoint(mymPoint)
-                        .ownedToken(ownedToken)
                         .blockCreatedTime(LocalDateTime.now())
                         .build();
                 BCUserRepository.save(BCUser);
 
                 results.add("AMB with nickname " + nickName + " already exists in AMB");
+
                 // 3초 대기
                 try {
                     Thread.sleep(3000);
@@ -194,23 +193,23 @@ public class UserService {
             }
             // 둘 다 데이터가 없는 경우
             else {
-                //AMB에 데이터 저장 요청
+                // AMB에 데이터 저장 요청
                 ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                                 "--tls --cafile %s " +
                                 "--channelID %s " +
                                 "--name %s -c '{\"Args\":[\"CreateUserBlock\", \"%s\", \"%d\", \"%s\"]}'",
                         caFilePath, channelID, chaincodeName, nickName, mymPoint, ownedToken));
 
-                // MongoDB에 데이터 저장
+                // MongoDB에 데이터 저장 (ownedToken 필드 제외)
                 BCUser BCUser = mymb.mymbbchyperledgerfabric.entity.BCUser.builder()
                         .nickName(nickName)
                         .mymPoint(mymPoint)
-                        .ownedToken(ownedToken)
                         .blockCreatedTime(LocalDateTime.now())
                         .build();
                 BCUserRepository.save(BCUser);
 
                 results.add("AMB " + ambResult + " MongoDB : Data saved successfully");
+
                 // 3초 대기
                 try {
                     Thread.sleep(3000);

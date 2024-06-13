@@ -17,6 +17,8 @@ public class TokenDTO {
 
     private String tokenNumber;
 
+    private String owner;
+
     private String categoryCode;
 
     private String pollingResultId;

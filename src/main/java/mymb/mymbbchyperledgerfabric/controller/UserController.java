@@ -20,9 +20,8 @@ public class UserController {
     public ResponseEntity<?> createSigninUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
-        List<String> ownedToken = BCUserDTO.getOwnedToken();
 
-        String result = userService.createSigninUserBlock(nickName, mymPoint, ownedToken);
+        String result = userService.createSigninUserBlock(nickName, mymPoint);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -31,9 +30,8 @@ public class UserController {
     public ResponseEntity<?> createLoginUserBlock(@RequestBody BCUserDTO BCUserDTO) {
         String nickName = BCUserDTO.getNickName();
         int mymPoint = BCUserDTO.getMymPoint();
-        List<String> ownedToken = BCUserDTO.getOwnedToken();
 
-        String result = userService.createLoginUserBlock(nickName, mymPoint, ownedToken);
+        String result = userService.createLoginUserBlock(nickName, mymPoint);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
