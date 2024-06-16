@@ -32,10 +32,7 @@ public class TokenService {
     String chaincodeName = "mycc";
 
     // n개의 티켓을 발행하는 메서드
-    public String mintToken(String owner, String categoryCode, String pollingResultId, String fundingId, String ticketId, String tokenType, String sellStage, int ticketCnt) {
-
-        // imageUrl 초기화
-        String imageUrl = "";
+    public String mintToken(String owner, String categoryCode, String pollingResultId, String fundingId, String ticketId, String tokenType, String sellStage, String imageURL,int ticketCnt) {
 
         StringBuilder result = new StringBuilder();
 
@@ -70,10 +67,10 @@ public class TokenService {
                     .categoryCode(categoryCode)
                     .pollingResultId(pollingResultId)
                     .fundingId(fundingId)
-                    .tokenType(tokenType)
                     .ticketId(ticketId)
+                    .tokenType(tokenType)
                     .sellStage(sellStage)
-                    .imageUrl(imageUrl)
+                    .imageUrl(imageURL)
                     .tokenCreatedTime(LocalDateTime.now())
                     .build();
             tokenRepository.save(token);
@@ -82,8 +79,8 @@ public class TokenService {
             ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, tokenNumber, categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, imageUrl));
+                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, imageURL));
 
             result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
 
@@ -396,9 +393,6 @@ public class TokenService {
     // 지정된 유저의 Pay 컬렉션 조건에 맞춘 메서드
     public String transferTokens(String from, String to) {
 
-        // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
-        List<Pay> payList = payRepository.findByStatus("OD");
-
         // User 컬렉션에서 fromUserNickName을 가진 유저를 찾음
         User fromUser = userRepository.findByNickName(from);
         if (fromUser == null) {
@@ -423,23 +417,31 @@ public class TokenService {
             return to + " BCUser를 찾을 수 없습니다.";
         }
 
-        // 각 도큐먼트마다 작업 수행
+        // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
+        List<Pay> payList = payRepository.findByStatus("OD");
+        List<Pay> filteredPayList = new ArrayList<>();
         for (Pay pay : payList) {
+            if (toUser.getId().equals(pay.getMemberId())) {
+                filteredPayList.add(pay);
+            }
+        }
+
+        // 각 도큐먼트마다 작업 수행
+        for (Pay pay : filteredPayList) {
             // ticketCount 만큼 토큰 전송
             int ticketCount = pay.getTicketCount();
             List<String> transferTokens = new ArrayList<>();
             for (int i = 0; i < ticketCount; i++) {
                 boolean tokenFound = false;
 
-                // 송신자의 ownedToken 목록에서 ticketId가 일치하는 토큰을 찾음
-                Iterator<String> iterator = fromBCUser.getOwnedToken().iterator();
-                while (iterator.hasNext()) {
-                    String tokenNumber = iterator.next();
-                    Token token = tokenRepository.findByTokenNumber(tokenNumber);
-                    if (token != null && token.getTicketId().equals(pay.getTicketId())) {
-                        // 일치하는 토큰을 찾으면 전송 목록에 추가하고 목록에서 제거
-                        transferTokens.add(tokenNumber);
-                        iterator.remove();
+                // Token 컬렉션에서 owner가 fromUserNickName과 일치하고 ticketId가 일치하는 토큰을 찾음
+                List<Token> fromTokens = tokenRepository.findByOwner(from);
+                for (Token token : fromTokens) {
+                    if (token.getTicketId().equals(pay.getTicketId())) {
+                        // 일치하는 토큰을 찾으면 전송 목록에 추가하고 owner를 to로 업데이트
+                        transferTokens.add(token.getTokenNumber());
+                        token.setOwner(to);
+                        tokenRepository.save(token);
                         tokenFound = true;
                         break;
                     }
