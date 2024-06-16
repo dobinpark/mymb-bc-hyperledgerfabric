@@ -10,7 +10,7 @@ cd -
 Step 7.2: Create the Chaincode Package(체인코드 패키징)
 docker exec cli peer lifecycle chaincode package ./contract.tar.gz \
 --path mymb-bc-chaincode/chaincode/mymb/go/ \
---label contract_7
+--label contract_2
 
 Step 7.3: Install the Package(체인코드 설치)
 docker exec cli peer lifecycle chaincode install contract.tar.gz
@@ -19,24 +19,24 @@ Step 7.4: Verify the Package(설치된 체인코드 확인)
 docker exec cli peer lifecycle chaincode queryinstalled
 
 Package ID
-contract_7:9d6fe4ae5ab6d5f814d3d058a176659e5ffb3e40801ba884a5583c93aa630bba
-Label: contract_7
+contract_2:eb914fd7cdbbd44ee6c09617565e231aa7fdadf0881f8060a9030fda19f64a44
+Label: contract_2
 
 Step 7.5: Approve the Chaincode(체인코드 승인)
 export CC_PACKAGE_ID=contract_7:9d6fe4ae5ab6d5f814d3d058a176659e5ffb3e40801ba884a5583c93aa630bba
 docker exec cli peer lifecycle chaincode approveformyorg \
 --orderer $ORDERER --tls --cafile /opt/home/managedblockchain-tls-chain.pem \
---channelID mychannel --name mycc --version v0 --sequence 7 --package-id $CC_PACKAGE_ID
+--channelID mychannel --name mycc --version v0 --sequence 2 --package-id $CC_PACKAGE_ID
 
 Step 7.6: Check Commit Readiness(커밋 준비 상태 확인)
 docker exec cli peer lifecycle chaincode checkcommitreadiness \
 --orderer $ORDERER --tls --cafile /opt/home/managedblockchain-tls-chain.pem \
---channelID mychannel --name mycc --version v0 --sequence 7
+--channelID mychannel --name mycc --version v0 --sequence 2
 
 Step 7.7: Commit the Chaincode(체인코드 커밋)
 docker exec cli peer lifecycle chaincode commit \
 --orderer $ORDERER --tls --cafile /opt/home/managedblockchain-tls-chain.pem \
---channelID mychannel --name mycc --version v0 --sequence 7
+--channelID mychannel --name mycc --version v0 --sequence 2
 
 Step 7.8: Verify the Chaincode(커밋된 체인코드 확인)
 docker exec cli peer lifecycle chaincode querycommitted \
