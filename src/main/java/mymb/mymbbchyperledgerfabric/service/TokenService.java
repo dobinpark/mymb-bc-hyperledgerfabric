@@ -32,7 +32,8 @@ public class TokenService {
     String chaincodeName = "mycc";
 
     // n개의 티켓을 발행하는 메서드
-    public String mintToken(String owner, String categoryCode, String pollingResultId, String fundingId, String ticketId, String tokenType, String sellStage, String imageURL,int ticketCnt) {
+    public String mintToken(String owner, String categoryCode, String pollingResultId, String fundingId,
+                            String ticketId, String tokenType, String sellStage, String imageUrl,int ticketCnt) {
 
         StringBuilder result = new StringBuilder();
 
@@ -70,7 +71,7 @@ public class TokenService {
                     .ticketId(ticketId)
                     .tokenType(tokenType)
                     .sellStage(sellStage)
-                    .imageUrl(imageURL)
+                    .imageUrl(imageUrl)
                     .tokenCreatedTime(LocalDateTime.now())
                     .build();
             tokenRepository.save(token);
@@ -80,7 +81,7 @@ public class TokenService {
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, imageURL));
+                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, imageUrl));
 
             result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
 
