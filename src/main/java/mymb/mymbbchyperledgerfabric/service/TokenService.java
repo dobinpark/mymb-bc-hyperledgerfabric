@@ -298,69 +298,85 @@ public class TokenService {
     // Pay 컬렉션의 모든 도큐먼트들을 트랜스퍼하는 메서드
     public String transferOldToken() {
 
+        String from = "(주)밈비";
+
+        // User 컬렉션에서 fromUserNickName을 가진 유저를 찾음
+        User fromUser = userRepository.findByNickName(from);
+        if (fromUser == null) {
+            return from + " 유저를 찾을 수 없습니다.";
+        }
+
+        // BCUser 컬렉션에서 fromUserNickName을 가진 유저를 찾음
+        BCUser fromBCUser = BCUserRepository.findByNickName(from);
+        if (fromBCUser == null) {
+            return from + " BCUser를 찾을 수 없습니다.";
+        }
+
         // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
         List<Pay> payList = payRepository.findByStatus("OD");
-
-        // 각 도큐먼트마다 작업 수행
+        List<Pay> filteredPayList = new ArrayList<>();
         for (Pay pay : payList) {
-            // memberId 필드값을 통해 User 컬렉션에서 _id값을 찾고 닉네임을 저장
-            User user = userRepository.findById(pay.getMemberId()).orElse(null);
-            if (user == null) continue;
+            Optional<User> optionalToUser = userRepository.findById(pay.getMemberId());
+            if (!optionalToUser.isPresent()) {
+                System.out.println(pay.getMemberId() + " 유저를 찾을 수 없습니다.");
+                continue;
+            }
 
-            // 해당 User 컬렉션의 도큐먼트 닉네임 값을 저장
-            String userNickName = user.getNickName();
+            User toUser = optionalToUser.get();
 
-            // BCUser 컬렉션에서 닉네임이 "(주)밈비"인 유저를 찾음
-            BCUser fromBCUser = BCUserRepository.findByNickName("(주)밈비");
-            if (fromBCUser == null) continue; // BCUser를 찾을 수 없으면 다음 도큐먼트로 넘어감
+            BCUser toBCUser = BCUserRepository.findByNickName(toUser.getNickName());
+            if (toBCUser == null) {
+                System.out.println(toUser.getNickName() + " BCUser를 찾을 수 없습니다.");
+                continue;
+            }
 
-            // BCUser 컬렉션에서 해당 사용자의 닉네임을 가진 유저를 찾음
-            BCUser toBCUser = BCUserRepository.findByNickName(userNickName);
-            if (toBCUser == null) continue; // toBCUser를 찾을 수 없으면 다음 도큐먼트로 넘어감
-
-            // ticketCount 만큼 토큰 전송
+            // 각 도큐먼트마다 작업 수행
             int ticketCount = pay.getTicketCount();
-            List<String> transferTokens = new ArrayList<>();
             for (int i = 0; i < ticketCount; i++) {
                 boolean tokenFound = false;
 
-                // 송신자의 ownedToken 목록에서 ticketId가 일치하는 토큰을 찾음
-                Iterator<String> iterator = fromBCUser.getOwnedToken().iterator();
-                while (iterator.hasNext()) {
-                    String tokenNumber = iterator.next();
-                    Token token = tokenRepository.findByTokenNumber(tokenNumber);
-                    if (token != null && token.getTicketId().equals(pay.getTicketId())) {
-                        // 일치하는 토큰을 찾으면 전송 목록에 추가하고 목록에서 제거
-                        transferTokens.add(tokenNumber);
-                        iterator.remove();
+                // Token 컬렉션에서 owner가 fromUserNickName과 일치하고 ticketId가 일치하는 토큰을 찾음
+                List<Token> fromTokens = tokenRepository.findByOwner(from);
+                String tokenNumber = null;
+                for (Token token : fromTokens) {
+                    if (token.getTicketId().equals(pay.getTicketId())) {
+                        // 일치하는 토큰을 찾으면 전송 목록에 추가하고 owner를 to로 업데이트
+                        tokenNumber = token.getTokenNumber();
+                        token.setOwner(toUser.getNickName());
+                        tokenRepository.save(token);
                         tokenFound = true;
                         break;
                     }
                 }
 
                 if (!tokenFound) {
-                    // 토큰 부족 메세지 출력
-                    System.out.println("(주)밈비가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
+                    // 토큰 부족 메시지 출력
+                    System.out.println(from + "가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
                     return "토큰 전송이 실패했습니다.";
+                }
+
+                // transfer 활성 체인코드
+                String command = String.format("docker exec cli peer chaincode invoke " +
+                                "--tls --cafile %s " +
+                                "--channelID %s " +
+                                "--name %s " +
+                                "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                        caFilePath, channelID, chaincodeName, from, toUser.getNickName(), tokenNumber);
+
+                System.out.println("Executing command: " + command);
+
+                executeCommand(command);
+
+                // 3초 대기
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
                 }
             }
 
-            // transfer 활성 체인코드
-            executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), transferTokens));
-
-            // 2.4 3초 대기
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                e.printStackTrace();
-            }
-
-            // 2.5 변경사항 저장
+            // 변경사항 저장
             BCUserRepository.save(fromBCUser);
             BCUserRepository.save(toBCUser);
         }
