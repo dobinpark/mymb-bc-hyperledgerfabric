@@ -436,7 +436,7 @@ public class TokenService {
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), transferTokens));
+                    caFilePath, channelID, chaincodeName, from, to, transferTokens));
 
             // 3초 대기
             try {
