@@ -431,51 +431,26 @@ public class TokenService {
                     System.out.println(from + "가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
                     return "토큰 전송이 실패했습니다.";
                 }
-            }
 
-            // transferTokens를 JSON 문자열로 변환
-            String transferTokensJson;
-            try {
-                transferTokensJson = new ObjectMapper().writeValueAsString(transferTokens);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                return "토큰 전송을 위한 JSON 변환에 실패했습니다.";
-            }
+                // transfer 활성 체인코드
+                String command = String.format("docker exec cli peer chaincode invoke " +
+                                "--tls --cafile %s " +
+                                "--channelID %s " +
+                                "--name %s " +
+                                "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                        caFilePath, channelID, chaincodeName, from, to, transferTokens);
 
-            // from 체인코드
-            String ambFrom = String.format("docker exec cli peer chaincode query " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s " +
-                            "-c '{\"Args\":[\"GsetUer\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, from);
+                System.out.println("Executing command: " + command);
 
-            // to 체인코드
-            String ambTo = String.format("docker exec cli peer chaincode query " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s " +
-                            "-c '{\"Args\":[\"GsetUer\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, to);
+                executeCommand(command);
 
-            // transfer 활성 체인코드
-            String command = String.format("docker exec cli peer chaincode invoke " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s " +
-                            "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, ambFrom, ambTo, transferTokensJson);
-
-            System.out.println("Executing command: " + command);
-
-            executeCommand(command);
-
-            // 3초 대기
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                e.printStackTrace();
+                // 3초 대기
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                }
             }
 
             // 변경사항 저장
