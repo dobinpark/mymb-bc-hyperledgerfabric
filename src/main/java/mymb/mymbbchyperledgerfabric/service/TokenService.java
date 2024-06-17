@@ -447,8 +447,8 @@ public class TokenService {
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s " +
-                            "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", %s]}'",
-                    caFilePath, channelID, chaincodeName, from, to, transferTokensJson);
+                            "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), transferTokensJson);
 
             System.out.println("Executing command: " + command);
 
