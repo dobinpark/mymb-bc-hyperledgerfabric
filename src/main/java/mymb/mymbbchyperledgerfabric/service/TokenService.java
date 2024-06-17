@@ -148,13 +148,6 @@ public class TokenService {
             return "일부 토큰이 존재하지 않습니다.";
         }
 
-        // 지정된 토큰이 fromBCUser 소유인지 확인
-        for (String tokenNumber : tokenNumbers) {
-            if (!fromBCUser.getOwnedToken().contains(tokenNumber)) {
-                return "from 유저는 토큰 " + tokenNumber + "를 소유하지 않습니다.";
-            }
-        }
-
         // 토큰 전송 및 처리
         for (String tokenNumber : tokenNumbers) {
             // 토큰 선택
@@ -163,27 +156,10 @@ public class TokenService {
                 continue; // 토큰이 존재하지 않으면 다음 토큰으로 넘어감
             }
 
-            // fromBCUser의 토큰 제거
-            fromBCUser.getOwnedToken().remove(tokenNumber);
-
-            // toBCUser에게 토큰 추가
-            toBCUser.getOwnedToken().add(tokenNumber);
+            // 토큰의 owner 필드를 'to'로 변경
+            token.setOwner(to);
 
             tokenRepository.save(token);
-
-            // sellStage 값 변경 체인코드
-            executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"UpdateSellStage\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, tokenNumber, token.getSellStage()));
-
-            // transfer 활성 체인코드
-            executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), tokenNumber));
 
             try {
                 // 3000밀리초 대기
