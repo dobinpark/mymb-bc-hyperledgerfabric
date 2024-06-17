@@ -433,22 +433,12 @@ public class TokenService {
                 }
             }
 
-            // 체인코드 인수 형식으로 변환
-            String transferTokensJson;
-            try {
-                transferTokensJson = new ObjectMapper().writeValueAsString(transferTokens);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                return "토큰 전송을 위한 JSON 변환에 실패했습니다.";
-            }
-
             // transfer 활성 체인코드
             String command = String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
-                            "--name %s " +
-                            "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, from, to, transferTokensJson);
+                            "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, from, to, transferTokens);
 
             System.out.println("Executing command: " + command);
 
