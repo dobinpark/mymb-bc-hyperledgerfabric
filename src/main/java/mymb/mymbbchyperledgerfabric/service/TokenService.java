@@ -409,16 +409,16 @@ public class TokenService {
         for (Pay pay : filteredPayList) {
             // ticketCount 만큼 토큰 전송
             int ticketCount = pay.getTicketCount();
-            List<String> transferTokens = new ArrayList<>();
             for (int i = 0; i < ticketCount; i++) {
                 boolean tokenFound = false;
 
                 // Token 컬렉션에서 owner가 fromUserNickName과 일치하고 ticketId가 일치하는 토큰을 찾음
                 List<Token> fromTokens = tokenRepository.findByOwner(from);
+                String tokenNumber = null;
                 for (Token token : fromTokens) {
                     if (token.getTicketId().equals(pay.getTicketId())) {
                         // 일치하는 토큰을 찾으면 전송 목록에 추가하고 owner를 to로 업데이트
-                        transferTokens.add(token.getTokenNumber());
+                        tokenNumber = token.getTokenNumber();
                         token.setOwner(to);
                         tokenRepository.save(token);
                         tokenFound = true;
@@ -438,7 +438,7 @@ public class TokenService {
                                 "--channelID %s " +
                                 "--name %s " +
                                 "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                        caFilePath, channelID, chaincodeName, from, to, transferTokens);
+                        caFilePath, channelID, chaincodeName, from, to, tokenNumber);
 
                 System.out.println("Executing command: " + command);
 
