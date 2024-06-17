@@ -442,13 +442,29 @@ public class TokenService {
                 return "토큰 전송을 위한 JSON 변환에 실패했습니다.";
             }
 
+            // from 체인코드
+            String ambFrom = String.format("docker exec cli peer chaincode query " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s " +
+                            "-c '{\"Args\":[\"GsetUer\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, from);
+
+            // to 체인코드
+            String ambTo = String.format("docker exec cli peer chaincode query " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s " +
+                            "-c '{\"Args\":[\"GsetUer\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, to);
+
             // transfer 활성 체인코드
             String command = String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
                             "--name %s " +
                             "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, from, to, transferTokensJson);
+                    caFilePath, channelID, chaincodeName, ambFrom, ambTo, transferTokensJson);
 
             System.out.println("Executing command: " + command);
 
