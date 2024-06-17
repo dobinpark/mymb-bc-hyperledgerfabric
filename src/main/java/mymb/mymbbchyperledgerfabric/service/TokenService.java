@@ -1,5 +1,7 @@
 package mymb.mymbbchyperledgerfabric.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import mymb.mymbbchyperledgerfabric.dto.BCUserDTO;
 import mymb.mymbbchyperledgerfabric.entity.*;
@@ -431,12 +433,26 @@ public class TokenService {
                 }
             }
 
+            // 체인코드 인수 형식으로 변환
+            String transferTokensJson;
+            try {
+                transferTokensJson = new ObjectMapper().writeValueAsString(transferTokens);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+                return "토큰 전송을 위한 JSON 변환에 실패했습니다.";
+            }
+
             // transfer 활성 체인코드
-            executeCommand(String.format("docker exec cli peer chaincode invoke " +
+            String command = String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, from, to, transferTokens));
+                            "--name %s " +
+                            "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", %s]}'",
+                    caFilePath, channelID, chaincodeName, from, to, transferTokensJson);
+
+            System.out.println("Executing command: " + command);
+
+            executeCommand(command);
 
             // 3초 대기
             try {
