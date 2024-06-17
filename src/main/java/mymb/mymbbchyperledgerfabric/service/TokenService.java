@@ -448,7 +448,7 @@ public class TokenService {
                             "--channelID %s " +
                             "--name %s " +
                             "-c '{\"Args\":[\"TransferToken\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, fromBCUser.getNickName(), toBCUser.getNickName(), transferTokensJson);
+                    caFilePath, channelID, chaincodeName, from, to, transferTokensJson);
 
             System.out.println("Executing command: " + command);
 
