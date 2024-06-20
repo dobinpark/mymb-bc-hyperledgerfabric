@@ -20,7 +20,6 @@ public class TokenController {
     public ResponseEntity<?> mintToken(@RequestBody TokenDTO tokenDTO) {
         String owner = tokenDTO.getOwner();
         String categoryCode = tokenDTO.getCategoryCode();
-        String pollingResultId = tokenDTO.getPollingResultId();
         String fundingId = tokenDTO.getFundingId();
         String ticketId = tokenDTO.getTicketId();
         String tokenType = tokenDTO.getTokenType();
@@ -29,8 +28,8 @@ public class TokenController {
         int ticketCnt = tokenDTO.getTicketCnt();
 
         String result = tokenService.mintToken(
-                owner, categoryCode, pollingResultId, fundingId,
-                ticketId, tokenType, sellStage, imageUrl, ticketCnt);
+                owner, categoryCode, fundingId, ticketId,
+                tokenType, sellStage, imageUrl, ticketCnt);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 

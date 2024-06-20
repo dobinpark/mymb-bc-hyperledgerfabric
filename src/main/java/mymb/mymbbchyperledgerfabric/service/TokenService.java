@@ -34,8 +34,8 @@ public class TokenService {
     String chaincodeName = "mycc";
 
     // n개의 티켓을 발행하는 메서드
-    public String mintToken(String owner, String categoryCode, String pollingResultId, String fundingId,
-                            String ticketId, String tokenType, String sellStage, String imageUrl,int ticketCnt) {
+    public String mintToken(String owner, String categoryCode, String fundingId, String ticketId,
+                            String tokenType, String sellStage, String imageUrl,int ticketCnt) {
 
         StringBuilder result = new StringBuilder();
 
@@ -68,7 +68,6 @@ public class TokenService {
                     .tokenNumber(tokenNumber)
                     .owner(owner)
                     .categoryCode(categoryCode)
-                    .pollingResultId(pollingResultId)
                     .fundingId(fundingId)
                     .ticketId(ticketId)
                     .tokenType(tokenType)
@@ -82,8 +81,8 @@ public class TokenService {
             ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
                             "--tls --cafile %s " +
                             "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, pollingResultId, fundingId, ticketId, tokenType, sellStage, imageUrl));
+                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, fundingId, ticketId, tokenType, sellStage, imageUrl));
 
             result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
 

@@ -21,8 +21,6 @@ public class TokenDTO {
 
     private String categoryCode;
 
-    private String pollingResultId;
-
     private String fundingId;
 
     private String ticketId;

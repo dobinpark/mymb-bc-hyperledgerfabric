@@ -31,9 +31,6 @@ public class Token {
     private String categoryCode;
 
     @Field
-    private String pollingResultId;
-
-    @Field
     private String fundingId;
 
     @Field
