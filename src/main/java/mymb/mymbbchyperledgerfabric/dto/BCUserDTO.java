@@ -16,6 +16,8 @@ public class BCUserDTO {
 
     private String userId;
 
+    private String userNumber;
+
     private String nickName;
 
     private int mymPoint;
@@ -25,4 +27,6 @@ public class BCUserDTO {
     private LocalDateTime blockCreatedTime;
 
     private int delta;
+
+    private int count;
 }

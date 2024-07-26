@@ -23,6 +23,9 @@ public class BCUser {
     private String userId;
 
     @Field
+    private String userNumber;
+
+    @Field
     private String nickName;
 
     @Field

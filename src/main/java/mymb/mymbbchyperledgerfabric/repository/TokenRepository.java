@@ -12,4 +12,5 @@ public interface TokenRepository extends MongoRepository<Token, String> {
     Token findByTokenNumber(String tokenNumber);
     List<Token> findByTokenNumberIn(List<String> tokenNumbers);
     List<Token> findByOwner(String owner);
+    int countByOwner(String owner);
 }

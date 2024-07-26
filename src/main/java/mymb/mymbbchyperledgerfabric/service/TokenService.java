@@ -47,19 +47,60 @@ public class TokenService {
             String tokenNumber = generateTokenNumber(uuid.toString());
             System.out.println("tokenNumber : " + tokenNumber);
 
+            // MongoDB에 데이터 저장
+            Token token = Token.builder()
+                    .tokenNumber(tokenNumber)
+                    .owner(owner)
+                    .categoryCode(categoryCode)
+                    .fundingId(fundingId)
+                    .ticketId(ticketId)
+                    .tokenType(tokenType)
+                    .sellStage(sellStage)
+                    .imageUrl(imageUrl)
+                    .tokenCreatedTime(LocalDateTime.now())
+                    .build();
+            tokenRepository.save(token);
+
+            // AMB에 데이터 저장 요청
+            String ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
+                            "--tls --cafile %s " +
+                            "--channelID %s " +
+                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\",\"%s\", \"%s\", \"%s\", \"%s\"]}'",
+                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, fundingId, ticketId, tokenType, sellStage, imageUrl));
+
+            result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
+
+            try {
+                // 3000밀리초 대기
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+        }
+
+        return "티켓 민팅이 완료되었습니다.";
+    }
+
+    // n개의 티켓을 발행하는 메서드(몽고디비만)
+    public String mintTokenMongo(String owner, String categoryCode, String fundingId, String ticketId,
+                                 String tokenType, String sellStage, String imageUrl,int ticketCnt) {
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < ticketCnt; i++) {
+            // UUID 생성
+            UUID uuid = UUID.randomUUID();
+
+            // tokenNumber 생성
+            String tokenNumber = generateTokenNumber(uuid.toString());
+            System.out.println("tokenNumber : " + tokenNumber);
+
             // MongoDB에 TokenNumber가 이미 존재하는지 확인
             Token existingToken = tokenRepository.findByTokenNumber(tokenNumber);
             if (existingToken != null) {
                 // 이미 존재하는 경우에는 아무 동작도 수행하지 않고 다음 토큰 생성
                 result.append("Token with tokenId ").append(tokenNumber).append(" already exists in MongoDB\n");
-                continue;
-            }
-
-            // AMB에 TokenNumber가 이미 존재하는지 확인
-            String ambResult = getToken(tokenNumber);
-            if (!ambResult.isEmpty()) {
-                // 이미 존재하는 경우에는 아무 동작도 수행하지 않고 다음 토큰 생성
-                result.append("Token with tokenId ").append(tokenNumber).append(" already exists in AMB\n");
                 continue;
             }
 
@@ -76,23 +117,6 @@ public class TokenService {
                     .tokenCreatedTime(LocalDateTime.now())
                     .build();
             tokenRepository.save(token);
-
-            // AMB에 데이터 저장 요청
-            ambResult = executeCommand(String.format("docker exec cli peer chaincode invoke " +
-                            "--tls --cafile %s " +
-                            "--channelID %s " +
-                            "--name %s -c '{\"Args\":[\"MintToken\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"]}'",
-                    caFilePath, channelID, chaincodeName, tokenNumber, owner, categoryCode, fundingId, ticketId, tokenType, sellStage, imageUrl));
-
-            result.append("AMB ").append(ambResult).append(" MongoDB : Data saved successfully for token ").append(tokenNumber).append("\n");
-
-            try {
-                // 3000밀리초 대기
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                e.printStackTrace();
-            }
         }
 
         return result.toString();
@@ -116,7 +140,7 @@ public class TokenService {
                 "--name %s -c '{\"Args\":[\"GetAllTokens\"]}'", caFilePath, channelID, chaincodeName));
     }
 
-    // 지정된 토큰들을 전송하는 메서드
+    // 해당 토큰들을 전송하는 메서드
     public String transferToken(String from, String to, List<String> tokenNumbers) {
 
         // User 컬렉션에 닉네임을 이용하여 사용자 찾기
@@ -477,6 +501,98 @@ public class TokenService {
         return "토큰 전송이 완료되었습니다.";
     }
 
+    // Pay 컬렉션 조건에 맞춰 일괄적으로 트랜스퍼하는 메서드(몽고디비만)
+    public String transferTokensMongo() {
+
+        String from = "(주)밈비"; // from 유저를 고정
+
+        // User 컬렉션에서 fromUserNickName을 가진 유저를 찾음
+        User fromUser = userRepository.findByNickName(from);
+        if (fromUser == null) {
+            return from + " 유저를 찾을 수 없습니다.";
+        }
+
+        // BCUser 컬렉션에서 fromUserNickName을 가진 유저를 찾음
+        BCUser fromBCUser = BCUserRepository.findByNickName(from);
+        if (fromBCUser == null) {
+            return from + " BCUser를 찾을 수 없습니다.";
+        }
+
+        // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회
+        List<Pay> payList = payRepository.findByStatus("OD");
+
+        // 각 도큐먼트마다 작업 수행
+        for (Pay pay : payList) {
+            String to = pay.getMemberId(); // to 유저를 Pay 컬렉션의 MemberNickName으로 설정
+
+            // User 컬렉션에서 toUserNickName을 가진 유저를 찾음
+            User toUser = userRepository.findByNickName(to);
+            if (toUser == null) {
+                return to + " 유저를 찾을 수 없습니다.";
+            }
+
+            // BCUser 컬렉션에서 toUserNickName을 가진 유저를 찾음
+            BCUser toBCUser = BCUserRepository.findByNickName(to);
+            if (toBCUser == null) {
+                return to + " BCUser를 찾을 수 없습니다.";
+            }
+
+            // ticketCount 만큼 토큰 전송
+            int ticketCount = pay.getTicketCount();
+            for (int i = 0; i < ticketCount; i++) {
+                boolean tokenFound = false;
+
+                // Token 컬렉션에서 owner가 fromUserNickName과 일치하고 ticketId가 일치하는 토큰을 찾음
+                List<Token> fromTokens = tokenRepository.findByOwner(from);
+                String tokenNumber = null;
+                for (Token token : fromTokens) {
+                    if (token.getTicketId().equals(pay.getTicketId())) {
+                        // 일치하는 토큰을 찾으면 전송 목록에 추가하고 owner를 to로 업데이트
+                        tokenNumber = token.getTokenNumber();
+                        token.setOwner(to);
+                        tokenRepository.save(token);
+                        tokenFound = true;
+                        break;
+                    }
+                }
+
+                if (!tokenFound) {
+                    // 토큰 부족 메시지 출력
+                    System.out.println(from + "가 가지고 있는 토큰 중에서 일치하는 ticketId의 토큰이 부족합니다.");
+                    return "토큰 전송이 실패했습니다.";
+                }
+            }
+
+            // 변경사항 저장
+            BCUserRepository.save(fromBCUser);
+            BCUserRepository.save(toBCUser);
+        }
+
+        // 모든 작업이 완료되면 메시지 반환
+        return "토큰 전송이 완료되었습니다.";
+    }
+
+    // 모든 토큰들의 소유주를 "(주)밈비"로 바꾸는 메서드(몽고디비만)
+    public String updateTokenOwners() {
+        String newOwner = "(주)밈비"; // 새로운 owner 값
+
+        // Token 컬렉션에서 모든 도큐먼트를 조회
+        List<Token> tokenList = tokenRepository.findAll();
+
+        if (tokenList.isEmpty()) {
+            return "변경할 토큰이 없습니다.";
+        }
+
+        // 각 도큐먼트마다 owner 값을 업데이트
+        for (Token token : tokenList) {
+            token.setOwner(newOwner);
+            tokenRepository.save(token);
+        }
+
+        // 모든 작업이 완료되면 메시지 반환
+        return "모든 토큰의 owner 값이 '(주)밈비'로 변경되었습니다.";
+    }
+
     // 커뮤니티 활동 포인트 적립하는 메서드
     public String updateMymPoint(BCUserDTO request) {
         String nickName = request.getNickName();
@@ -504,25 +620,15 @@ public class TokenService {
 
     // 해당 유저가 가지고 있는 토큰들을 삭제하는 메서드
     public String deleteAllTokens(String nickName) {
-
         // MongoDB에서 사용자 찾기
         BCUser BCUser = BCUserRepository.findByNickName(nickName);
         if (BCUser != null) {
-            // 소유한 토큰 리스트 가져오기
-            List<String> ownedTokens = new ArrayList<>(BCUser.getOwnedToken());
+            // Token 컬렉션에서 owner가 nickName인 모든 도큐먼트 찾기
+            List<Token> ownedTokens = tokenRepository.findByOwner(nickName);
 
-            // 토큰 리스트 비우기
-            BCUser.getOwnedToken().clear();
-            BCUserRepository.save(BCUser);
-
-            StringBuilder result = new StringBuilder();
             // 각 토큰 삭제
-            for (String tokenNumber : ownedTokens) {
-                // MongoDB에서 토큰 삭제
-                Token token = tokenRepository.findByTokenNumber(tokenNumber);
-                if (token != null) {
-                    tokenRepository.delete(token);
-                }
+            for (Token token : ownedTokens) {
+                tokenRepository.delete(token);
             }
 
             // Hyperledger Fabric에서 사용자의 모든 토큰 삭제
@@ -530,14 +636,14 @@ public class TokenService {
                     "--tls --cafile %s " +
                     "--channelID %s " +
                     "--name %s -c '{\"Args\":[\"DeleteAllTokens\", \"%s\"]}'", caFilePath, channelID, chaincodeName, nickName));
-            result.append("Tokens deleted from AMB for user ").append(nickName).append(" with result: ").append(ambResult).append("\n");
 
-            return result.toString();
+            return "Tokens deleted from MongoDB and AMB for user " + nickName + " with result: " + ambResult;
         } else {
             return "BCUser with nickname " + nickName + " not found in MongoDB";
         }
     }
 
+    // 누락된 유저 ID를 찾는 메서드
     public String findMissingUsers() {
 
         // Pay 컬렉션에서 status "OD"인 도큐먼트들을 조회

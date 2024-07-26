@@ -33,22 +33,40 @@ public class TokenController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
+    // n개의 티켓을 발행
+    @PostMapping("/mintTokenMongo")
+    public ResponseEntity<?> mintTokenMongo(@RequestBody TokenDTO tokenDTO) {
+        String owner = tokenDTO.getOwner();
+        String categoryCode = tokenDTO.getCategoryCode();
+        String fundingId = tokenDTO.getFundingId();
+        String ticketId = tokenDTO.getTicketId();
+        String tokenType = tokenDTO.getTokenType();
+        String sellStage = tokenDTO.getSellStage();
+        String imageUrl = tokenDTO.getImageUrl();
+        int ticketCnt = tokenDTO.getTicketCnt();
+
+        String result = tokenService.mintTokenMongo(
+                owner, categoryCode, fundingId, ticketId,
+                tokenType, sellStage, imageUrl, ticketCnt);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
     // 해당 토큰을 조회
-    @GetMapping("/token/{tokenNumber}")
+    @GetMapping("/getToken/{tokenNumber}")
     public ResponseEntity<?> getToken(@PathVariable String tokenNumber) {
         String result = tokenService.getToken(tokenNumber);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 모든 토큰을 조회
-    @GetMapping("/tokens")
+    @GetMapping("/getAllTokens")
     public ResponseEntity<?> getAllTokens() {
         String result = tokenService.getAllTokens();
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     // 누락된 유저 ID를 찾는 메서드
-    @GetMapping("/token/missingUsers")
+    @GetMapping("/findMissingUsers/missingUsers")
     public ResponseEntity<?> findMissingUsers() {
         String result = tokenService.findMissingUsers();
         return new ResponseEntity<>(result, HttpStatus.OK);
@@ -69,9 +87,16 @@ public class TokenController {
     }
 
     // 지정된 유저의 Pay 컬렉션 조건에 맞춘 토큰 전송
-    @PutMapping("/transferTokens")
-    public ResponseEntity<?> transferTokens(@RequestBody TransferRequest transferRequest) {
-        String result = tokenService.transferTokens(transferRequest.getFrom(), transferRequest.getTo());
+    @PutMapping("/transferTokensMongo")
+    public ResponseEntity<?> transferTokensMongo() {
+        String result = tokenService.transferTokensMongo();
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    // 모든 토큰들의 소유주를 "(주)밈비"로 바꾸는 메서드(몽고디비만)
+    @PutMapping("/updateTokenOwners")
+    public ResponseEntity<?> updateTokenOwners() {
+        String result = tokenService.updateTokenOwners();
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
