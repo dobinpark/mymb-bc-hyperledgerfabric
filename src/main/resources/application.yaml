@@ -2,4 +2,4 @@ spring:
   data:
     mongodb:
       database: MYMB_DB
-      uri: mongodb+srv://mymber:Alaql2022!@cluster0.iq5yu.mongodb.net/
+      uri: mongodb+srv://...
